@@ -130,7 +130,6 @@ open class RunServerTask : DefaultTask() {
             "-XX:AOTCache=HytaleServer.aot",
             "-jar", serverJar.name,
             "--assets", "Assets.zip",
-            "--assets", "../Assets",
             "--disable-sentry",
             "--allow-op"
         ))

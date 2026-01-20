@@ -1,11 +1,12 @@
 plugins {
+    kotlin("jvm") version "2.3.0"
     id("java-library")
     id("com.gradleup.shadow") version "9.3.1"
     id("run-server")
 }
 
-group = findProperty("pluginGroup") as String? ?: "com.example"
-version = findProperty("pluginVersion") as String? ?: "1.0.0"
+group = findProperty("pluginGroup") as String
+version = findProperty("pluginVersion") as String
 
 repositories {
     mavenLocal()
@@ -15,8 +16,6 @@ repositories {
 dependencies {
     // If this does not resolve, run `gradle downloadServer`
     compileOnly(files("run/HytaleServer.jar"))
-
-    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
 }
 
 java {
@@ -26,11 +25,6 @@ java {
 }
 
 tasks {
-    compileJava {
-        options.encoding = Charsets.UTF_8.name()
-        options.release = 25
-    }
-
     shadowJar {
         archiveBaseName.set(rootProject.name)
         archiveClassifier.set("")

@@ -1,8 +1,0 @@
-items.Reinforcement_Basic.name = Basic Reinforcement
-
-items.Bench_ReinforceBench.name = Reinforcement Workbench
-items.Bench_ReinforceBench.description = Use this to craft reinforcements from basic materials
-benchCategories.reinforcebench.reinforcements = Reinforcements
-
-general.reinforcement.alreadyReinforced = That block is already reinforced!
-general.reinforcement.reinforcedBasic = Reinforced block with basic reinforcement

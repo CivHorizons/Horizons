@@ -1,12 +1,12 @@
 {
-  "Group": "CivMC",
-  "Name": "Civtale",
+  "Group": "CivHorizons",
+  "Name": "Horizons",
   "Version": "1.0.0",
   "Authors": [
     {
-      "Name": "Okx"
+      "Name": "SoundTech"
     }
   ],
-  "Main": "sh.okx.civtale.Civtale",
-  "ServerVersion": "*"
+  "Main": "net.civhorizons.horizons.Horizons",
+  "IncludesAssetPack": true
 }
