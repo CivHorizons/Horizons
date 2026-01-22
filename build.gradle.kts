@@ -1,12 +1,23 @@
+import dev.detekt.gradle.Detekt
+
 plugins {
     kotlin("jvm") version "2.3.0"
     id("java-library")
     id("com.gradleup.shadow") version "9.3.1"
+    id("dev.detekt") version "main-SNAPSHOT"
+
     id("run-server")
 }
 
 group = findProperty("pluginGroup") as String
 version = findProperty("pluginVersion") as String
+
+// TODO: Remove this once Detekt 2.0.0-alpha.2 is available
+allprojects {
+    repositories {
+        maven("https://central.sonatype.com/repository/maven-snapshots/")
+    }
+}
 
 repositories {
     mavenLocal()
@@ -35,3 +46,9 @@ tasks {
     }
 }
 
+tasks.withType<Detekt>().configureEach {
+    reports {
+        html.required = true
+
+    }
+}

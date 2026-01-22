@@ -10,7 +10,9 @@ import net.civhorizons.horizons.util.saveAll
 class GroupSavingSystems {
 
     class WorldRemovedSystem : StoreSystem<EntityStore>() {
-        override fun onSystemAddedToStore(store: Store<EntityStore>) {}
+        override fun onSystemAddedToStore(store: Store<EntityStore>) {
+            // NO-OP
+        }
 
         override fun onSystemRemovedFromStore(store: Store<EntityStore>) {
             LOGGER.atInfo().log("Saving groups...")

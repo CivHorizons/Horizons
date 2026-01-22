@@ -1,0 +1,36 @@
+name: "Static Analysis"
+
+on:
+  push:
+    branches: [main, develop ]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  detekt:
+    name: Run Detekt
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-home-cache-includes: |
+            caches
+            notifications
+          gradle-home-cache-cleanup: true
+      - run: chmod +x gradlew
+
+      - run: ./gradlew detekt --no-daemon --parallel --configuration-cache --build-cache
+        continue-on-error: true # Make errors warnings
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: detekt-report
+          path: build/reports/detkt/detekt.html
