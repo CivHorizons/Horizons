@@ -5,6 +5,7 @@ import com.hypixel.hytale.codec.KeyedCodec
 import com.hypixel.hytale.codec.builder.BuilderCodec
 import com.hypixel.hytale.component.Resource
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
+import net.civhorizons.horizons.Horizons
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -22,6 +23,8 @@ class GroupsResource(
     ) {
 
         companion object {
+            fun getType() = Horizons.instance.groupsModule.groupsResourceType
+
             val CODEC = BuilderCodec.builder(GroupComponent::class.java, ::GroupComponent)
                 .append(KeyedCodec("UUID", Codec.UUID_BINARY),
                     { group, uuid -> group.uuid = uuid},
