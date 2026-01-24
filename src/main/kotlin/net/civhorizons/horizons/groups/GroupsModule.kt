@@ -2,6 +2,8 @@ package net.civhorizons.horizons.groups
 
 import com.hypixel.hytale.component.ResourceType
 import com.hypixel.hytale.component.Store
+import com.hypixel.hytale.server.core.entity.entities.Player
+import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.datastore.DiskDataStore
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import net.civhorizons.horizons.Horizons
@@ -64,6 +66,13 @@ class GroupsModule(val horizons: Horizons) {
         }
 
         /**
+         * Only get Groups a player is on
+         */
+        fun getGroups(store: Store<EntityStore>, player: PlayerRef): Map<UUID, GroupsResource.GroupComponent> {
+            return getGroups(store).filterValues { it.membership.containsKey(player.uuid) }
+        }
+
+        /**
          * Add a new group to the store and save it to disk, or update an existing one.
          * Matching is done via the group's UUID.
          *
@@ -85,6 +94,36 @@ class GroupsModule(val horizons: Horizons) {
             storage.save(group.uuid, group)
 
             return group
+        }
+
+        /**
+         * Create a new group with a set of default options.
+         *
+         * Two roles, Owner and Member.
+         */
+        fun createNewGroup(store: Store<EntityStore>, playerRef: PlayerRef, name: String): GroupsResource.GroupComponent {
+            val ownerRoleUUID = UUID.randomUUID()
+
+            val group = GroupsResource.GroupComponent(
+                name = name,
+                // Create two basic roles, Owner and Member
+                roles = arrayOf(GroupsResource.GroupComponent.GroupRole(
+                    uuid = ownerRoleUUID,
+                    name = "Owner",
+                    permissions = mapOf(GroupsResource.GroupComponent.GroupRole.Permission.MANAGE_GROUP to true)
+                ), GroupsResource.GroupComponent.GroupRole(
+                    name = "Member",
+                    permissions = mapOf()
+                )),
+                // Assign the creator as the owner
+                membership = mapOf(
+                    playerRef.uuid to GroupsResource.GroupComponent.GroupMembershipData(
+                        roles = setOf(ownerRoleUUID)
+                    )
+                )
+            )
+
+            return createOrUpdateGroup(store, group)
         }
 
         /**

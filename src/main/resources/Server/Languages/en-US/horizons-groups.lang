@@ -3,4 +3,5 @@ command.groups.info.errnotfound=No groups with that name can be found.
 command.groups.create.success=Group "{name}" has been created!
 
 command.groups.delete.errnotfound=Could not find any groups with that UUID.
+command.groups.delete.errnoperms=You do not have permission to delete this group.
 command.groups.delete.success=Group "{name}" has been deleted!

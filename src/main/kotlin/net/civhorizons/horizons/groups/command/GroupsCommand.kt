@@ -13,6 +13,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import net.civhorizons.horizons.groups.GroupsModule
 import net.civhorizons.horizons.groups.resource.GroupsResource
 import net.civhorizons.horizons.groups.ui.GroupsPage
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
 class GroupsCommand(val groupsApi: GroupsModule.GroupsAPI) : AbstractPlayerCommand("groups", "Interact with groups") {
@@ -30,7 +31,7 @@ class GroupsCommand(val groupsApi: GroupsModule.GroupsAPI) : AbstractPlayerComma
         val player = context.senderAs(Player::class.java)
 
         // TODO: Pass to GUI
-        val groups = groupsApi.getGroups(store)
+        val groups = groupsApi.getGroups(store, playerRef)
 
         CompletableFuture.runAsync {
             player.pageManager.openCustomPage(ref, store, GroupsPage(playerRef))
@@ -41,7 +42,7 @@ class GroupsCommand(val groupsApi: GroupsModule.GroupsAPI) : AbstractPlayerComma
         override fun execute(context: CommandContext, store: Store<EntityStore>, ref: Ref<EntityStore>, playerRef: PlayerRef, world: World) {
             val player = context.senderAs(Player::class.java)
 
-            val groups = groupsApi.getGroups(store)
+            val groups = groupsApi.getGroups(store, playerRef)
 
             groups.forEach { (uuid, group) ->
                 player.sendMessage(Message.raw(
@@ -57,7 +58,7 @@ class GroupsCommand(val groupsApi: GroupsModule.GroupsAPI) : AbstractPlayerComma
         override fun execute(context: CommandContext, store: Store<EntityStore>, ref: Ref<EntityStore>, playerRef: PlayerRef, world: World) {
             val name = nameArg.get(context)
 
-            val groups = groupsApi.getGroups(store).filter { it.value.name.startsWith(name, true) }
+            val groups = groupsApi.getGroups(store, playerRef).filter { it.value.name.startsWith(name, true) }
 
             if (groups.isEmpty()) {
                 playerRef.sendMessage(Message.translation("horizons-groups.command.groups.info.errnotfound"))
@@ -65,7 +66,7 @@ class GroupsCommand(val groupsApi: GroupsModule.GroupsAPI) : AbstractPlayerComma
 
             groups.forEach { (uuid, group) ->
                 playerRef.sendMessage(Message.raw(
-                    "${group.name}\nUUID: $uuid"
+                    "${group.name}\nUUID: $uuid\nMembers: ${group.membership.size}"
                 ))
             }
         }
@@ -78,9 +79,7 @@ class GroupsCommand(val groupsApi: GroupsModule.GroupsAPI) : AbstractPlayerComma
         override fun execute(context: CommandContext, store: Store<EntityStore>, ref: Ref<EntityStore>, playerRef: PlayerRef, world: World) {
             val name = nameArg.get(context)
 
-            val group = groupsApi.createOrUpdateGroup(store, GroupsResource.GroupComponent(
-                name = name,
-            ))
+            val group = groupsApi.createNewGroup(store, playerRef, name)
 
             playerRef.sendMessage(Message.translation("horizons-groups.command.groups.create.success").param("name", group.name))
         }
@@ -94,12 +93,20 @@ class GroupsCommand(val groupsApi: GroupsModule.GroupsAPI) : AbstractPlayerComma
 
             val group = groupsApi.getGroup(store, uuid)
 
-            if (group == null) {
+            // If the group doesn't exist, or the player is not on it, send this message.
+            // While it's hard to probe for groups via UUID, you may know the UUID of a group after you're removed from it.
+            if (group == null || !group.isPlayerOnGroup(playerRef)) {
                 playerRef.sendMessage(Message.translation("horizons-groups.command.groups.delete.errnotfound"))
-            } else {
-                groupsApi.deleteGroup(store, group)
-                playerRef.sendMessage(Message.translation("horizons-groups.command.groups.delete.success").param("name", group.name))
+                return
             }
+
+            if (!group.playerHasPermission(playerRef, GroupsResource.GroupComponent.GroupRole.Permission.MANAGE_GROUP)) {
+                playerRef.sendMessage(Message.translation("horizons-groups.command.groups.delete.errnoperms"))
+                return
+            }
+
+            groupsApi.deleteGroup(store, group)
+            playerRef.sendMessage(Message.translation("horizons-groups.command.groups.delete.success").param("name", group.name))
         }
     }
 }
