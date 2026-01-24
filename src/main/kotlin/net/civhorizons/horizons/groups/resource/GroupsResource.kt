@@ -9,6 +9,7 @@ import com.hypixel.hytale.codec.codecs.map.MapCodec
 import com.hypixel.hytale.codec.codecs.set.SetCodec
 import com.hypixel.hytale.component.Resource
 import com.hypixel.hytale.server.core.universe.PlayerRef
+import com.hypixel.hytale.server.core.universe.Universe
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import net.civhorizons.horizons.Horizons
 import java.util.EnumMap
@@ -27,8 +28,17 @@ class GroupsResource(
         var uuid: UUID = UUID.randomUUID(),
         var name: String = "",
         var roles: Array<GroupRole> = arrayOf(),
-        var membership: Map<UUID, GroupMembershipData> = mapOf()
+        var membership: MutableMap<UUID, GroupMembershipData> = mutableMapOf()
     ) {
+
+        /**
+         * Get all members on the group
+         */
+        fun members(): List<PlayerRef> {
+            return membership.keys.mapNotNull {
+                Universe.get().getPlayer(it)
+            }
+        }
 
         /**
          * Return true if _any_ role grants the user a permission
@@ -64,7 +74,7 @@ class GroupsResource(
                     { it.roles }
                 ).add()
                 .append(KeyedCodec("Membership", MapCodec(GroupMembershipData.CODEC, ::ConcurrentHashMap)),
-                { group, membership -> group.membership = membership.map { Pair(UUID.fromString(it.key), it.value) }.toMap() },
+                { group, membership -> group.membership = membership.map { Pair(UUID.fromString(it.key), it.value) }.toMap().toMutableMap() },
                     { it -> it.membership.map { Pair(it.key.toString(), it.value) }.toMap() }
                 ).add()
                 .build()
