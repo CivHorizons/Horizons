@@ -6,7 +6,7 @@ import com.hypixel.hytale.codec.builder.BuilderCodec
 import com.hypixel.hytale.component.Component
 import com.hypixel.hytale.protocol.Vector3i
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore
-import com.hypixel.hytale.server.core.util.io.ByteBufUtil
+import io.netty.buffer.ByteBufUtil
 import io.netty.buffer.Unpooled
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import kotlin.collections.forEach
@@ -29,7 +29,11 @@ class BlockReinforcementChunkComponent : Component<ChunkStore> {
 
         // TODO: Serialize
 
-        return ByteBufUtil.getBytesRelease(buf)
+        return try {
+            ByteBufUtil.getBytes(buf)
+        } finally {
+            buf.release()
+        }
     }
 
     fun deserialize(data: ByteArray) {

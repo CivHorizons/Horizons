@@ -1,12 +1,25 @@
 {
-  "Group": "CivHorizons",
-  "Name": "Horizons",
-  "Version": "1.0.0",
-  "Authors": [
-    {
-      "Name": "SoundTech"
+    "Group": "CivHorizons",
+    "Name": "Horizons",
+    "Version": "1.0-SNAPSHOT",
+    "Authors": [
+        {
+            "Name": "SoundTech"
+        }
+    ],
+    "Main": "net.civhorizons.horizons.Horizons",
+    "IncludesAssetPack": true,
+    "Description": "",
+    "Website": "",
+    "ServerVersion": ">=0.6.5",
+    "Dependencies": {
+        
+    },
+    "OptionalDependencies": {
+        
+    },
+    "DisabledByDefault": false,
+    "UpdateChecker": {
+        "CurseForge": ""
     }
-  ],
-  "Main": "net.civhorizons.horizons.Horizons",
-  "IncludesAssetPack": true
 }

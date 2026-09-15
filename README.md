@@ -2,12 +2,10 @@
 
 To setup the development environment, you need either Windows or Linux, and Java 25+ installed.
 
-Run `./gradlew.bat downloadServer` to download the Hytale jar and prepare the server. You will need to authenticate during this, so watch for the link
+Run `./gradlew setupHytaleDev` to get the decompiled classes and Assets cached.
 
-You wil find it will put a server jar and assets in the `run` folder.
+Run `./gradlew runServer` to launch, with `run/` as the server directory.
 
-To run Hytale, use `./gradlew.bat runServer`.
+Running with `-Ddebug=true` opens the debugger on port 5005; add `-Dhotswap=true` for hot swap.
 
-If you run into an error with the AOTCache, make sure you are using Adoptium as recommended by Hytale
-
-Running gradle in debug mode will open the debugger on port 5005
+Run `./gradlew hytaleDoctor` to diagnose project, asset, and dependency problems.

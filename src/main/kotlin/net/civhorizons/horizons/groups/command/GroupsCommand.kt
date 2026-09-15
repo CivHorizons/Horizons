@@ -34,7 +34,7 @@ class GroupsCommand(val groupsApi: GroupsAPI) : AbstractPlayerCommand("groups", 
     }
 
     override fun execute(context: CommandContext, store: Store<EntityStore>, ref: Ref<EntityStore>, playerRef: PlayerRef, world: World) {
-        val player = context.senderAs(Player::class.java)
+        val player = store.getComponent(ref, Player.getComponentType()) ?: return
 
         // TODO: Pass to GUI
         val groups = groupsApi.getGroups(store, playerRef)
@@ -46,12 +46,10 @@ class GroupsCommand(val groupsApi: GroupsAPI) : AbstractPlayerCommand("groups", 
 
     class GroupsListCommand(val groupsApi: GroupsAPI) : AbstractPlayerCommand("list", "List groups") {
         override fun execute(context: CommandContext, store: Store<EntityStore>, ref: Ref<EntityStore>, playerRef: PlayerRef, world: World) {
-            val player = context.senderAs(Player::class.java)
-
             val groups = groupsApi.getGroups(store, playerRef)
 
             groups.forEach { (uuid, group) ->
-                player.sendMessage(Message.raw(
+                playerRef.sendMessage(Message.raw(
                     "${group.name}: $uuid"
                 ))
             }

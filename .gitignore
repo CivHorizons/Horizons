@@ -5,9 +5,5 @@ build/
 !**/src/test/**/build/
 .kotlin
 .idea
-HytaleServer.jar
 run/
-sources/
 *.iml
-temp/
-fernflower/
