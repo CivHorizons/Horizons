@@ -1,0 +1,40 @@
+$C = "../../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 450, Height: 240);
+
+  #Title {
+    Group {
+      $C.@Title #PageTitle {}
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Label #Status {
+      Anchor: (Bottom: 8);
+      Style: (TextColor: #ffcc66, Wrap: true);
+    }
+
+    Label #Message {
+      FlexWeight: 1;
+      Style: (Wrap: true);
+    }
+
+    Group {
+      LayoutMode: Right;
+
+      $C.@TextButton #ConfirmButton {
+        @Text = "";
+        @Anchor = (Left: 6);
+      }
+
+      $C.@CancelTextButton #CancelButton {
+        @Text = "";
+      }
+    }
+  }
+}

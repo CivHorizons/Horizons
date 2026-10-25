@@ -13,7 +13,7 @@ import net.civhorizons.horizons.groups.toMessage
 /**
  * Entry point: the player's groups and their pending invites.
  */
-open class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsPage(playerRef, status) {
+class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsPage(playerRef, status) {
 
     override fun buildPage(
         ref: Ref<EntityStore>,
