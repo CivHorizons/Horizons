@@ -33,7 +33,7 @@ java {
 
 hytaleTools {
     javaVersion = 25
-    hytaleVersion = "0.6.5"
+    hytaleVersion = "0.7.4"
     patchline = "release"
 
     manifestGroup = "CivHorizons"

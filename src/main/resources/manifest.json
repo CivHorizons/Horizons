@@ -11,7 +11,7 @@
     "IncludesAssetPack": true,
     "Description": "",
     "Website": "",
-    "ServerVersion": ">=0.6.5",
+    "ServerVersion": ">=0.7.4",
     "Dependencies": {
         
     },
