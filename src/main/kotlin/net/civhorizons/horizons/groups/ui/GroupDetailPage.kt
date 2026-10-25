@@ -126,7 +126,7 @@ class GroupDetailPage(
 
         when (data.action) {
             BACK -> navigate(ref, store, GroupListPage(playerRef))
-            INVITE -> navigate(ref, store, GroupDetailPage(playerRef, groupUuid)) // Task 7: GroupInvitePage
+            INVITE -> navigate(ref, store, GroupInvitePage(playerRef, groupUuid))
             DELETE -> confirmDelete(ref, store, group)
             REMOVE -> data.targetUuid()?.let { confirmRemove(ref, store, group, it) }
             SET_ROLE -> data.targetUuid()?.let { setRole(store, group, it, data.value) }
