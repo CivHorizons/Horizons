@@ -3,6 +3,7 @@ package net.civhorizons.horizons.groups
 import com.hypixel.hytale.component.ResourceType
 import com.hypixel.hytale.component.Store
 import com.hypixel.hytale.server.core.entity.entities.Player
+import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.datastore.DiskDataStore
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
@@ -10,6 +11,7 @@ import net.civhorizons.horizons.GroupsAPI
 import net.civhorizons.horizons.Horizons
 import net.civhorizons.horizons.groups.command.GroupsCommand
 import net.civhorizons.horizons.groups.resource.GroupsResource
+import net.civhorizons.horizons.groups.system.GroupPlayerReadyListener
 import net.civhorizons.horizons.groups.system.GroupSavingSystems
 import net.civhorizons.horizons.util.loadAllUUIDs
 import net.civhorizons.horizons.util.remove
@@ -39,6 +41,9 @@ class GroupsModule(val horizons: Horizons) {
         }
 
         horizons.entityStoreRegistry.registerSystem(GroupSavingSystems.WorldRemovedSystem())
+
+        val playerReadyListener = GroupPlayerReadyListener(api)
+        horizons.eventRegistry.registerGlobal(PlayerReadyEvent::class.java) { playerReadyListener.onPlayerReady(it) }
 
         horizons.commandRegistry.registerCommand(GroupsCommand(api))
     }
