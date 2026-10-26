@@ -1,0 +1,6 @@
+group.message=[{group}] {username}: {message}
+group.focused=Your chat now goes to "{group}". Use /gc to return to local chat.
+group.unfocused=Your chat is now local.
+group.lost=You can no longer chat to that group, so your chat is local again.
+group.notfound=You are not in a group named "{name}".
+group.ambiguous=You are in more than one group named "{name}". Rename one in /groups to chat to it.
