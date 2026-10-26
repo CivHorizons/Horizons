@@ -47,7 +47,7 @@ class GroupsResource(
             val activeRoleUUIDs = membership[player.uuid]?.roles ?: return false
             val activeRoles = roles.filter { activeRoleUUIDs.contains(it.uuid) }
 
-            return activeRoles.any { it.permissions.contains(permission) }
+            return activeRoles.any { it.permissions[permission] == true }
         }
 
         /**
