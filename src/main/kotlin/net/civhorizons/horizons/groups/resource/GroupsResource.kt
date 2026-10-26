@@ -115,7 +115,8 @@ class GroupsResource(
                     ).add()
                     .build()
 
-                val CODEC_ARRAY = ArrayCodec<GroupRole>(CODEC) { arrayOf() }
+                // ArrayCodec fills the array by index, so it must be allocated at the requested size
+                val CODEC_ARRAY = ArrayCodec<GroupRole>(CODEC) { size -> Array(size) { GroupRole() } }
             }
 
             // TODO: Create some sort of permission registry
