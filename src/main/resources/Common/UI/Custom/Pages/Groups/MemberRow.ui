@@ -1,0 +1,28 @@
+$C = "../../Common.ui";
+
+Group {
+  LayoutMode: Left;
+  Padding: (Full: 6);
+
+  Label #Name {
+    Style: (RenderBold: true);
+    FlexWeight: 1;
+  }
+
+  Label #Offline {
+    Style: (TextColor: #ffffff(0.4), RenderItalics: true);
+    Anchor: (Right: 8);
+  }
+
+  Label #Role {
+    Style: (TextColor: #ffffff(0.6));
+  }
+
+  $C.@DropdownBox #RoleDropdown {
+    @Anchor = (Width: 140, Right: 6);
+  }
+
+  $C.@CancelTextButton #RemoveButton {
+    @Text = "";
+  }
+}

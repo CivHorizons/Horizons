@@ -1,0 +1,60 @@
+$C = "../../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 600, Height: 650);
+
+  #Title {
+    Group {
+      $C.@Title #PageTitle {}
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Label #Status {
+      Anchor: (Bottom: 8);
+      Style: (TextColor: #ffcc66, Wrap: true);
+    }
+
+    Group #InvitesSection {
+      LayoutMode: Top;
+      Anchor: (Bottom: 12);
+
+      Label #InvitesHeader {
+        Style: (RenderBold: true);
+        Anchor: (Bottom: 4);
+      }
+
+      Group #InviteList {
+        LayoutMode: Top;
+      }
+    }
+
+    Label #GroupsHeader {
+      Style: (RenderBold: true);
+      Anchor: (Bottom: 4);
+    }
+
+    Label #EmptyLabel {
+      Style: (TextColor: #ffffff(0.5), Wrap: true);
+    }
+
+    Group #GroupList {
+      FlexWeight: 1;
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+    }
+
+    Group {
+      LayoutMode: Right;
+      Anchor: (Top: 8);
+
+      $C.@TextButton #CreateButton {
+        @Text = "";
+      }
+    }
+  }
+}

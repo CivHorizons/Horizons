@@ -1,0 +1,35 @@
+$C = "../../Common.ui";
+
+Group {
+  LayoutMode: Left;
+  Padding: (Full: 6);
+
+  Label #Name {
+    Style: (RenderBold: true);
+    FlexWeight: 1;
+  }
+
+  Label #Detail {
+    Style: (TextColor: #ffffff(0.5), RenderItalics: true);
+    Anchor: (Right: 8);
+  }
+
+  $C.@SmallSecondaryTextButton #UpButton {
+    @Text = "";
+    @Anchor = (Right: 4);
+  }
+
+  $C.@SmallSecondaryTextButton #DownButton {
+    @Text = "";
+    @Anchor = (Right: 4);
+  }
+
+  $C.@SmallSecondaryTextButton #EditButton {
+    @Text = "";
+    @Anchor = (Right: 4);
+  }
+
+  $C.@CancelTextButton #DeleteButton {
+    @Text = "";
+  }
+}

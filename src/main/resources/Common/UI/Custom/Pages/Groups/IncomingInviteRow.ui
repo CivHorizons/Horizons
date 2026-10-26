@@ -1,0 +1,28 @@
+$C = "../../Common.ui";
+
+Group {
+  LayoutMode: Left;
+  Padding: (Full: 6);
+
+  Group {
+    LayoutMode: Top;
+    FlexWeight: 1;
+
+    Label #Name {
+      Style: (RenderBold: true);
+    }
+
+    Label #Detail {
+      Style: (TextColor: #ffffff(0.5), RenderItalics: true);
+    }
+  }
+
+  $C.@TextButton #AcceptButton {
+    @Text = "";
+    @Anchor = (Right: 6);
+  }
+
+  $C.@CancelTextButton #DeclineButton {
+    @Text = "";
+  }
+}

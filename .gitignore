@@ -7,3 +7,6 @@ build/
 .idea
 run/
 *.iml
+
+# Superpowers specs and plans stay local
+docs/superpowers/

@@ -1,0 +1,14 @@
+$C = "../../Common.ui";
+
+Group {
+  LayoutMode: Left;
+  Padding: (Full: 6);
+
+  Label #Name {
+    FlexWeight: 1;
+  }
+
+  $C.@CancelTextButton #RevokeButton {
+    @Text = "";
+  }
+}

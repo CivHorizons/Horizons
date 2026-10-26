@@ -1,0 +1,39 @@
+$C = "../../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 450, Height: 260);
+
+  #Title {
+    Group {
+      $C.@Title #PageTitle {}
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Label #Status {
+      Anchor: (Bottom: 8);
+      Style: (TextColor: #ffcc66, Wrap: true);
+    }
+
+    $C.@TextField #NameInput {
+      @Anchor = (Bottom: 12);
+    }
+
+    Group {
+      LayoutMode: Right;
+
+      $C.@TextButton #CreateButton {
+        @Text = "";
+        @Anchor = (Left: 6);
+      }
+
+      $C.@CancelTextButton #CancelButton {
+        @Text = "";
+      }
+    }
+  }
+}
