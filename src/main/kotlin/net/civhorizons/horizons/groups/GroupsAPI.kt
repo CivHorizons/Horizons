@@ -5,7 +5,6 @@ import net.civhorizons.horizons.groups.GroupsModule.GroupDataStore
 import net.civhorizons.horizons.groups.resource.GroupComponent
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Permission
 import net.civhorizons.horizons.util.loadAllUUIDs
-import net.civhorizons.horizons.util.remove
 import net.civhorizons.horizons.util.save
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -20,10 +19,10 @@ class GroupsAPI(val storage: GroupDataStore) {
     private val groups = ConcurrentHashMap<UUID, GroupComponent>()
 
     /**
-     * Load every group from disk. Called once while the module sets up.
+     * Load every group from disk, skipping deleted ones. Called once while the module sets up.
      */
     fun load() {
-        groups.putAll(storage.loadAllUUIDs())
+        groups.putAll(storage.loadAllUUIDs().filterValues { !it.deleted })
     }
 
     /**
@@ -168,9 +167,7 @@ class GroupsAPI(val storage: GroupDataStore) {
     }
 
     /**
-     * Remove a group from memory and from disk.
-     *
-     * TODO: Turn this into a soft delete. See https://github.com/CivHorizons/Horizons/issues/20
+     * Unload a group and mark it deleted on disk, so an admin can still recover it. See [GroupComponent.deleted].
      */
     fun deleteGroup(actor: PlayerRef, groupUuid: UUID): GroupActionResult {
         val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
@@ -181,8 +178,9 @@ class GroupsAPI(val storage: GroupDataStore) {
             } else {
                 group.canDelete(actor.uuid).also {
                     if (it == GroupActionResult.Success) {
+                        group.deleted = true
+                        storage.save(group.uuid, group)
                         groups.remove(group.uuid)
-                        storage.remove(group.uuid)
                     }
                 }
             }

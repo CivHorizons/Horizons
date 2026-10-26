@@ -27,6 +27,11 @@ class GroupComponent(
     var roles: Array<GroupRole> = arrayOf(),
     var membership: MutableMap<UUID, GroupMembershipData> = ConcurrentHashMap(),
     var invites: MutableMap<UUID, GroupInviteData> = ConcurrentHashMap(),
+    /**
+     * Deleted groups stay on disk but are never loaded. An admin recovers one by setting this back to
+     * false in its file and restarting the server.
+     */
+    var deleted: Boolean = false,
 ) {
 
     /**
@@ -300,6 +305,10 @@ class GroupComponent(
             .append(KeyedCodec("Invites", MapCodec(GroupInviteData.CODEC, ::ConcurrentHashMap)),
                 { group, invites -> group.invites = ConcurrentHashMap(invites.mapKeys { UUID.fromString(it.key) }) },
                 { group -> group.invites.mapKeys { it.key.toString() } }
+            ).add()
+            .append(KeyedCodec("Deleted", Codec.BOOLEAN),
+                { group, deleted -> group.deleted = deleted },
+                { it.deleted }
             ).add()
             .build()
     }

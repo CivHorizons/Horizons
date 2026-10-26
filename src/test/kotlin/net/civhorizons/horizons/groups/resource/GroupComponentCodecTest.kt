@@ -5,6 +5,8 @@ import net.civhorizons.horizons.groups.resource.GroupComponent
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class GroupComponentCodecTest {
 
@@ -34,5 +36,26 @@ class GroupComponentCodecTest {
 
         assertEquals(group.roles.map { it.kind }, decoded.roles.map { it.kind })
         assertEquals(group.roles.map { it.permissions }, decoded.roles.map { it.permissions })
+    }
+
+    @Test
+    fun `round trips the deleted flag`() {
+        val group = GroupComponent.createDefault("Test", owner, "Alice")
+        group.deleted = true
+
+        val encoded = GroupComponent.CODEC.encode(group, extraInfo)
+        val decoded = checkNotNull(GroupComponent.CODEC.decode(encoded, extraInfo))
+
+        assertTrue(decoded.deleted)
+    }
+
+    @Test
+    fun `groups saved before soft delete load as not deleted`() {
+        val group = GroupComponent.createDefault("Test", owner, "Alice")
+
+        val encoded = GroupComponent.CODEC.encode(group, extraInfo).apply { remove("Deleted") }
+        val decoded = checkNotNull(GroupComponent.CODEC.decode(encoded, extraInfo))
+
+        assertFalse(decoded.deleted)
     }
 }
