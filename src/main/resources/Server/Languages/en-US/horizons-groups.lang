@@ -1,7 +1,57 @@
-command.groups.info.errnotfound=No groups with that name can be found.
+error.notfound=That group no longer exists.
+error.nopermission=You do not have permission to do that.
+error.alreadymember=That player is already a member of this group.
+error.alreadyinvited=That player already has a pending invite.
+error.notinvited=That invite no longer exists.
+error.notmember=That player is not a member of this group.
+error.lastowner=A group must always have at least one Owner.
+error.rolenotfound=That role no longer exists.
+error.invalidname=Group names must be between 1 and 32 characters.
+error.playeroffline=That player is no longer online.
+error.unexpected=Something went wrong. Please try again.
 
-command.groups.create.success=Group "{name}" has been created!
+invite.received=You have been invited to join "{name}". Open /groups to respond.
+invite.pending=You have {count} pending group invite(s). Open /groups to respond.
 
-command.groups.delete.errnotfound=Could not find any groups with that UUID.
-command.groups.delete.errnoperms=You do not have permission to delete this group.
-command.groups.delete.success=Group "{name}" has been deleted!
+ui.common.back=Back
+ui.common.cancel=Cancel
+ui.common.offline=(offline)
+
+ui.list.title=Groups
+ui.list.groups=My Groups
+ui.list.invites=Pending Invites
+ui.list.empty=You are not in any groups yet. Create one to get started.
+ui.list.create=Create Group
+ui.list.row={role} · {count} members
+ui.list.inviterow=Invited by {inviter}
+ui.list.accept=Accept
+ui.list.decline=Decline
+ui.list.accepted=You joined "{name}".
+ui.list.declined=Declined the invite to "{name}".
+
+ui.create.title=Create Group
+ui.create.name=Group name
+ui.create.submit=Create
+ui.create.success=Group "{name}" has been created!
+
+ui.detail.members=Members
+ui.detail.invites=Pending Invites
+ui.detail.invite=Invite Player
+ui.detail.delete=Delete Group
+ui.detail.remove=Remove
+ui.detail.revoke=Revoke
+ui.detail.rolechanged={player} is now {role}.
+ui.detail.removed=Removed {player}.
+ui.detail.revoked=Revoked the invite for {player}.
+ui.detail.deleted=Group "{name}" has been deleted.
+ui.detail.deleteconfirm.title=Delete Group
+ui.detail.deleteconfirm.message=Delete "{name}"? This cannot be undone.
+ui.detail.removeconfirm.title=Remove Member
+ui.detail.removeconfirm.message=Remove {player} from "{name}"?
+
+ui.invite.title=Invite Player
+ui.invite.search=Search players
+ui.invite.empty=No online players can be invited.
+ui.invite.sent=Invited {player}.
+
+ui.confirm.confirm=Confirm
