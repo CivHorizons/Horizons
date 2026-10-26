@@ -5,7 +5,6 @@ import net.civhorizons.horizons.groups.GroupsModule.GroupDataStore
 import net.civhorizons.horizons.groups.resource.GroupComponent
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Permission
 import net.civhorizons.horizons.util.loadAllUUIDs
-import net.civhorizons.horizons.util.remove
 import net.civhorizons.horizons.util.save
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -15,7 +14,8 @@ import java.util.concurrent.ConcurrentHashMap
 class GroupsAPI(val storage: GroupDataStore) {
 
     /**
-     * Every group in the universe, keyed by UUID. Each group is also saved to its own file in [storage].
+     * Every group in the universe, keyed by UUID, including deleted ones. Each group is also saved to its own
+     * file in [storage].
      */
     private val groups = ConcurrentHashMap<UUID, GroupComponent>()
 
@@ -27,21 +27,27 @@ class GroupsAPI(val storage: GroupDataStore) {
     }
 
     /**
-     * Get a single group by UUID
+     * Get a single group by UUID, even if it is deleted. Use this to resolve what a group owns, such as
+     * reinforcements, and check [GroupComponent.deleted] before letting anyone act through it.
      */
     fun getGroup(uuid: UUID): GroupComponent? {
         return groups[uuid]
     }
 
     /**
-     * Get a group only if the player is on it. Group-scoped actions treat
+     * Get a group players can still interact with: one that isn't deleted.
+     */
+    fun getActiveGroup(uuid: UUID): GroupComponent? = getGroup(uuid)?.takeUnless { it.deleted }
+
+    /**
+     * Get an active group only if the player is on it. Group-scoped actions treat
      * "not a member" the same as "doesn't exist" so UUIDs can't be probed.
      */
     fun getMemberGroup(player: PlayerRef, groupUuid: UUID): GroupComponent? =
-        getGroup(groupUuid)?.takeIf { it.isMember(player.uuid) }
+        getActiveGroup(groupUuid)?.takeIf { it.isMember(player.uuid) }
 
     /**
-     * Get every group in the universe.
+     * Get every group in the universe, including deleted ones.
      *
      * Groups are already loaded when the module starts.
      */
@@ -50,17 +56,17 @@ class GroupsAPI(val storage: GroupDataStore) {
     }
 
     /**
-     * Only get Groups a player is on
+     * Only get active Groups a player is on
      */
     fun getGroups(player: PlayerRef): Map<UUID, GroupComponent> {
-        return getGroups().filterValues { it.isMember(player.uuid) }
+        return getGroups().filterValues { !it.deleted && it.isMember(player.uuid) }
     }
 
     /**
-     * Groups the player has a pending invite to
+     * Active groups the player has a pending invite to
      */
     fun getInvitesFor(player: PlayerRef): Map<UUID, GroupComponent> {
-        return getGroups().filterValues { it.invites.containsKey(player.uuid) }
+        return getGroups().filterValues { !it.deleted && it.invites.containsKey(player.uuid) }
     }
 
     /**
@@ -102,12 +108,12 @@ class GroupsAPI(val storage: GroupDataStore) {
     }
 
     fun acceptInvite(player: PlayerRef, groupUuid: UUID): GroupActionResult {
-        val group = getGroup(groupUuid) ?: return GroupActionResult.Error.NOT_INVITED
+        val group = getActiveGroup(groupUuid) ?: return GroupActionResult.Error.NOT_INVITED
         return mutate(group) { group.acceptInvite(player.uuid, player.username) }
     }
 
     fun declineInvite(player: PlayerRef, groupUuid: UUID): GroupActionResult {
-        val group = getGroup(groupUuid) ?: return GroupActionResult.Error.NOT_INVITED
+        val group = getActiveGroup(groupUuid) ?: return GroupActionResult.Error.NOT_INVITED
         return mutate(group) { group.declineInvite(player.uuid) }
     }
 
@@ -168,24 +174,13 @@ class GroupsAPI(val storage: GroupDataStore) {
     }
 
     /**
-     * Remove a group from memory and from disk.
-     *
-     * TODO: Turn this into a soft delete. See https://github.com/CivHorizons/Horizons/issues/20
+     * Mark a group deleted. It stays loaded so whatever it owns keeps resolving, but nobody can interact with it.
+     * See [GroupComponent.deleted].
      */
     fun deleteGroup(actor: PlayerRef, groupUuid: UUID): GroupActionResult {
         val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
-        return synchronized(group) {
-            // Another world may have deleted it since it was looked up
-            if (groups[group.uuid] !== group) {
-                GroupActionResult.Error.NOT_FOUND
-            } else {
-                group.canDelete(actor.uuid).also {
-                    if (it == GroupActionResult.Success) {
-                        groups.remove(group.uuid)
-                        storage.remove(group.uuid)
-                    }
-                }
-            }
+        return mutate(group) {
+            group.canDelete(actor.uuid).also { if (it == GroupActionResult.Success) group.deleted = true }
         }
     }
 
@@ -206,13 +201,13 @@ class GroupsAPI(val storage: GroupDataStore) {
 
     /**
      * Apply [change] to the group while holding its lock, then save it if the change succeeded. Another world
-     * may have deleted the group since it was looked up, so a group that is no longer registered isn't saved.
+     * may have deleted or replaced the group since it was looked up, so those groups aren't changed.
      */
     private fun mutate(
         group: GroupComponent,
         change: () -> GroupActionResult,
     ): GroupActionResult = synchronized(group) {
-        if (groups[group.uuid] !== group) return GroupActionResult.Error.NOT_FOUND
+        if (group.deleted || groups[group.uuid] !== group) return GroupActionResult.Error.NOT_FOUND
 
         change().also { if (it == GroupActionResult.Success) storage.save(group.uuid, group) }
     }

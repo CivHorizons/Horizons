@@ -23,7 +23,8 @@ class GroupsModule(val horizons: Horizons) {
 
         groupStorage.path.createDirectories()
         api.load()
-        LOGGER.atInfo().log("${api.getGroups().size} groups loaded from disk")
+        val deleted = api.getGroups().values.count { it.deleted }
+        LOGGER.atInfo().log("${api.getGroups().size} groups loaded from disk, $deleted of them deleted")
 
         val usernameRefreshListener = GroupUsernameRefreshListener(api)
         horizons.eventRegistry.registerGlobal(PlayerReadyEvent::class.java) {
