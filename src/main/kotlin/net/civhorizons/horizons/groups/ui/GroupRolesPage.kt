@@ -9,9 +9,9 @@ import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import net.civhorizons.horizons.groups.GroupResult
 import net.civhorizons.horizons.groups.groupsText
-import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent
-import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent.GroupRole.Kind
-import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent.GroupRole.Permission
+import net.civhorizons.horizons.groups.resource.GroupComponent
+import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Kind
+import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Permission
 import net.civhorizons.horizons.groups.toMessage
 import java.util.UUID
 
@@ -37,7 +37,7 @@ class GroupRolesPage(
         commands.set("#BackButton.Text", groupsText("ui.common.back"))
         bindAction(events, "#BackButton", BACK)
 
-        val group = groupsApi.getMemberGroup(store, playerRef, groupUuid)
+        val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
             commands.set("#RoleList.Visible", false)
             commands.set("#CreateSection.Visible", false)
@@ -83,7 +83,7 @@ class GroupRolesPage(
     }
 
     override fun handleEvent(ref: Ref<EntityStore>, store: Store<EntityStore>, data: GroupsPageEvent) {
-        val group = groupsApi.getMemberGroup(store, playerRef, groupUuid)
+        val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
             navigate(ref, store, GroupListPage(playerRef, GroupResult.Error.NOT_FOUND.toMessage()))
             return
@@ -91,21 +91,21 @@ class GroupRolesPage(
 
         when (data.action) {
             BACK -> navigate(ref, store, GroupDetailPage(playerRef, groupUuid))
-            CREATE -> createRole(store, data.value.orEmpty())
-            MOVE_UP -> data.targetUuid()?.let { moveRole(store, it, up = true) }
-            MOVE_DOWN -> data.targetUuid()?.let { moveRole(store, it, up = false) }
+            CREATE -> createRole(data.value.orEmpty())
+            MOVE_UP -> data.targetUuid()?.let { moveRole(it, up = true) }
+            MOVE_DOWN -> data.targetUuid()?.let { moveRole(it, up = false) }
             EDIT -> data.targetUuid()?.let { navigate(ref, store, GroupRoleEditPage(playerRef, groupUuid, it)) }
             DELETE -> data.targetUuid()?.let { confirmDelete(ref, store, group, it) }
         }
     }
 
-    private fun createRole(store: Store<EntityStore>, name: String) {
-        val result = groupsApi.createRole(store, playerRef, groupUuid, name)
+    private fun createRole(name: String) {
+        val result = groupsApi.createRole(playerRef, groupUuid, name)
         refresh(result.toMessage { groupsText("ui.roles.created").param("role", name.trim()) })
     }
 
-    private fun moveRole(store: Store<EntityStore>, role: UUID, up: Boolean) {
-        val result = groupsApi.moveRole(store, playerRef, groupUuid, role, up)
+    private fun moveRole(role: UUID, up: Boolean) {
+        val result = groupsApi.moveRole(playerRef, groupUuid, role, up)
         // The new order speaks for itself, so only errors get a status line
         refresh((result as? GroupResult.Error)?.toMessage())
     }
@@ -126,7 +126,7 @@ class GroupRolesPage(
                 .param("count", group.membersWithRole(role))
                 .param("member", fallback),
             onConfirm = { r, s ->
-                val result = groupsApi.deleteRole(s, playerRef, groupUuid, role)
+                val result = groupsApi.deleteRole(playerRef, groupUuid, role)
                 val status = result.toMessage { groupsText("ui.roles.deleted").param("role", target.name) }
                 navigate(r, s, GroupRolesPage(playerRef, groupUuid, status))
             },

@@ -2,7 +2,7 @@ package net.civhorizons.horizons.groups.system
 
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent
 import com.hypixel.hytale.server.core.universe.PlayerRef
-import net.civhorizons.horizons.GroupsAPI
+import net.civhorizons.horizons.groups.GroupsAPI
 import net.civhorizons.horizons.groups.groupsText
 
 /**
@@ -19,9 +19,9 @@ class GroupPlayerReadyListener(val groupsApi: GroupsAPI) {
             if (!ref.isValid) return@execute
             val playerRef = store.getComponent(ref, PlayerRef.getComponentType()) ?: return@execute
 
-            groupsApi.refreshUsername(store, playerRef)
+            groupsApi.refreshUsername(playerRef)
 
-            val invites = groupsApi.getInvitesFor(store, playerRef)
+            val invites = groupsApi.getInvitesFor(playerRef)
             if (invites.isNotEmpty()) {
                 playerRef.sendMessage(groupsText("invite.pending").param("count", invites.size))
             }

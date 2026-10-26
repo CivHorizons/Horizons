@@ -32,7 +32,7 @@ class GroupCreatePage(playerRef: PlayerRef, status: Message? = null) : BaseGroup
     override fun handleEvent(ref: Ref<EntityStore>, store: Store<EntityStore>, data: GroupsPageEvent) {
         when (data.action) {
             CREATE -> {
-                val group = groupsApi.createNewGroup(store, playerRef, data.value.orEmpty())
+                val group = groupsApi.createNewGroup(playerRef, data.value.orEmpty())
                 if (group == null) {
                     showStatus(GroupResult.Error.INVALID_NAME.toMessage())
                     return

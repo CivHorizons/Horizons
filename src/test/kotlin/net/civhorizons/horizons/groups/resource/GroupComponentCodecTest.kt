@@ -1,7 +1,7 @@
 package net.civhorizons.horizons.groups.resource
 
 import com.hypixel.hytale.codec.ExtraInfo
-import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent
+import net.civhorizons.horizons.groups.resource.GroupComponent
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals

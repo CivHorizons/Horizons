@@ -12,7 +12,7 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.GroupsAPI
+import net.civhorizons.horizons.groups.GroupsAPI
 import net.civhorizons.horizons.Horizons
 import net.civhorizons.horizons.groups.GroupsModule
 import net.civhorizons.horizons.groups.groupsText

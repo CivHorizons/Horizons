@@ -29,12 +29,12 @@ class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsP
         commands.set("#CreateButton.Text", groupsText("ui.list.create"))
         bindAction(events, "#CreateButton", CREATE)
 
-        buildInvites(commands, events, store)
-        buildGroups(commands, events, store)
+        buildInvites(commands, events)
+        buildGroups(commands, events)
     }
 
-    private fun buildInvites(commands: UICommandBuilder, events: UIEventBuilder, store: Store<EntityStore>) {
-        val invited = groupsApi.getInvitesFor(store, playerRef).values.sortedBy { it.name.lowercase() }
+    private fun buildInvites(commands: UICommandBuilder, events: UIEventBuilder) {
+        val invited = groupsApi.getInvitesFor(playerRef).values.sortedBy { it.name.lowercase() }
         commands.set("#InvitesSection.Visible", invited.isNotEmpty())
 
         invited.forEachIndexed { i, group ->
@@ -51,8 +51,8 @@ class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsP
         }
     }
 
-    private fun buildGroups(commands: UICommandBuilder, events: UIEventBuilder, store: Store<EntityStore>) {
-        val groups = groupsApi.getGroups(store, playerRef).values.sortedBy { it.name.lowercase() }
+    private fun buildGroups(commands: UICommandBuilder, events: UIEventBuilder) {
+        val groups = groupsApi.getGroups(playerRef).values.sortedBy { it.name.lowercase() }
         commands.set("#EmptyLabel.Visible", groups.isEmpty())
 
         groups.forEachIndexed { i, group ->
@@ -74,13 +74,13 @@ class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsP
             CREATE -> navigate(ref, store, GroupCreatePage(playerRef))
             OPEN -> data.targetUuid()?.let { navigate(ref, store, GroupDetailPage(playerRef, it)) }
             ACCEPT -> data.targetUuid()?.let { groupUuid ->
-                val name = groupsApi.getGroup(store, groupUuid)?.name.orEmpty()
-                val result = groupsApi.acceptInvite(store, playerRef, groupUuid)
+                val name = groupsApi.getGroup(groupUuid)?.name.orEmpty()
+                val result = groupsApi.acceptInvite(playerRef, groupUuid)
                 refresh(result.toMessage { groupsText("ui.list.accepted").param("name", name) })
             }
             DECLINE -> data.targetUuid()?.let { groupUuid ->
-                val name = groupsApi.getGroup(store, groupUuid)?.name.orEmpty()
-                val result = groupsApi.declineInvite(store, playerRef, groupUuid)
+                val name = groupsApi.getGroup(groupUuid)?.name.orEmpty()
+                val result = groupsApi.declineInvite(playerRef, groupUuid)
                 refresh(result.toMessage { groupsText("ui.list.declined").param("name", name) })
             }
         }

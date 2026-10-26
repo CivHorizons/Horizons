@@ -1,10 +1,10 @@
 package net.civhorizons.horizons.groups.resource
 
 import net.civhorizons.horizons.groups.GroupResult
-import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent
-import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent.GroupRole
-import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent.GroupRole.Kind
-import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent.GroupRole.Permission
+import net.civhorizons.horizons.groups.resource.GroupComponent
+import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole
+import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Kind
+import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Permission
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals

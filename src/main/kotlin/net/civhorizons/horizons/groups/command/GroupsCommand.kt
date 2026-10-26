@@ -8,7 +8,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.World
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.GroupsAPI
+import net.civhorizons.horizons.groups.GroupsAPI
 import net.civhorizons.horizons.groups.ui.GroupListPage
 
 /**
