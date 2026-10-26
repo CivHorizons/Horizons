@@ -300,6 +300,165 @@ class GroupComponentTest {
         assertEquals(GroupResult.Error.ROLE_NOT_FOUND, group.setRole(owner, member, UUID.randomUUID()))
     }
 
+    // --- managing roles ---
+
+    /**
+     * group() plus MANAGE_ROLES for Admin.
+     */
+    private fun managedGroup(): GroupComponent {
+        val group = group()
+        group.role("Admin").permissions += Permission.MANAGE_ROLES to true
+        return group
+    }
+
+    @Test
+    fun `managing roles requires MANAGE_ROLES`() {
+        val group = group()
+        val builder = group.addRole("Builder")
+
+        assertEquals(GroupResult.Error.NO_PERMISSION, group.createRole(admin, "Guard"))
+        assertEquals(GroupResult.Error.NO_PERMISSION, group.renameRole(admin, builder.uuid, "Guard"))
+        assertEquals(
+            GroupResult.Error.NO_PERMISSION,
+            group.setRolePermission(admin, builder.uuid, Permission.INVITE_MEMBERS, true),
+        )
+        assertEquals(GroupResult.Error.NO_PERMISSION, group.deleteRole(admin, builder.uuid))
+        assertFalse(group.canManageRole(admin, builder.uuid))
+    }
+
+    @Test
+    fun `createRole inserts just above Member`() {
+        val group = managedGroup()
+
+        assertEquals(GroupResult.Success, group.createRole(admin, "  Guard  "))
+        assertEquals(listOf("Owner", "Admin", "Guard", "Member"), group.roles.map { it.name })
+        assertEquals(Kind.CUSTOM, group.role("Guard").kind)
+        assertTrue(group.role("Guard").permissions.none { it.value })
+    }
+
+    @Test
+    fun `role names are validated and unique ignoring case`() {
+        val group = managedGroup()
+
+        assertEquals(GroupResult.Error.INVALID_ROLE_NAME, group.createRole(owner, "   "))
+        assertEquals(GroupResult.Error.INVALID_ROLE_NAME, group.createRole(owner, "x".repeat(33)))
+        assertEquals(GroupResult.Error.ROLE_NAME_TAKEN, group.createRole(owner, "admin"))
+        assertEquals(GroupResult.Error.ROLE_NAME_TAKEN, group.renameRole(owner, group.role("Admin").uuid, "MEMBER"))
+    }
+
+    @Test
+    fun `renameRole changes the name, including protected roles`() {
+        val group = managedGroup()
+        val memberRole = group.role("Member").uuid
+
+        assertEquals(GroupResult.Success, group.renameRole(owner, memberRole, "Citizen"))
+        assertEquals("Citizen", group.findRole(memberRole)?.name)
+        assertEquals(GroupResult.Success, group.renameRole(owner, memberRole, "CITIZEN"))
+        assertEquals(GroupResult.Success, group.renameRole(owner, group.role("Owner").uuid, "Mayor"))
+    }
+
+    @Test
+    fun `cannot manage roles at or above your own`() {
+        val group = managedGroup()
+
+        assertEquals(GroupResult.Error.NO_PERMISSION, group.renameRole(admin, group.role("Admin").uuid, "Boss"))
+        assertEquals(GroupResult.Error.NO_PERMISSION, group.renameRole(admin, group.role("Owner").uuid, "Boss"))
+        assertTrue(group.canManageRole(admin, group.role("Member").uuid))
+        assertFalse(group.canManageRole(admin, group.role("Admin").uuid))
+    }
+
+    @Test
+    fun `setRolePermission grants and revokes`() {
+        val group = managedGroup()
+        val memberRole = group.role("Member").uuid
+
+        assertEquals(GroupResult.Success, group.setRolePermission(admin, memberRole, Permission.INVITE_MEMBERS, true))
+        assertTrue(group.hasPermission(member, Permission.INVITE_MEMBERS))
+        assertEquals(GroupResult.Success, group.setRolePermission(admin, memberRole, Permission.INVITE_MEMBERS, false))
+        assertFalse(group.hasPermission(member, Permission.INVITE_MEMBERS))
+    }
+
+    @Test
+    fun `cannot grant a permission you do not hold`() {
+        val group = managedGroup()
+
+        assertEquals(
+            GroupResult.Error.NO_PERMISSION,
+            group.setRolePermission(admin, group.role("Member").uuid, Permission.DELETE_GROUP, true),
+        )
+    }
+
+    @Test
+    fun `owner permissions cannot be edited`() {
+        val group = managedGroup()
+
+        assertEquals(
+            GroupResult.Error.ROLE_PROTECTED,
+            group.setRolePermission(owner, group.role("Owner").uuid, Permission.DELETE_GROUP, false),
+        )
+    }
+
+    @Test
+    fun `role operations report missing roles`() {
+        val group = managedGroup()
+        val missing = UUID.randomUUID()
+
+        assertEquals(GroupResult.Error.ROLE_NOT_FOUND, group.renameRole(owner, missing, "Guard"))
+        assertEquals(
+            GroupResult.Error.ROLE_NOT_FOUND,
+            group.setRolePermission(owner, missing, Permission.INVITE_MEMBERS, true),
+        )
+        assertEquals(GroupResult.Error.ROLE_NOT_FOUND, group.moveRole(owner, missing, up = true))
+        assertEquals(GroupResult.Error.ROLE_NOT_FOUND, group.deleteRole(owner, missing))
+    }
+
+    @Test
+    fun `moveRole swaps custom roles`() {
+        val group = managedGroup()
+        group.addRole("Builder")
+        group.addRole("Guard")
+
+        assertEquals(GroupResult.Success, group.moveRole(owner, group.role("Guard").uuid, up = true))
+        assertEquals(listOf("Owner", "Admin", "Guard", "Builder", "Member"), group.roles.map { it.name })
+        assertEquals(GroupResult.Success, group.moveRole(admin, group.role("Guard").uuid, up = false))
+        assertEquals(listOf("Owner", "Admin", "Builder", "Guard", "Member"), group.roles.map { it.name })
+    }
+
+    @Test
+    fun `moveRole keeps Owner first, Member last, and roles below the actor`() {
+        val group = managedGroup()
+        val builder = group.addRole("Builder")
+
+        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.moveRole(owner, group.role("Owner").uuid, up = false))
+        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.moveRole(owner, group.role("Member").uuid, up = true))
+        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.moveRole(owner, group.role("Admin").uuid, up = true))
+        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.moveRole(owner, builder.uuid, up = false))
+        // Moving Builder up would swap it with Admin, lifting it to the actor's own rank
+        assertEquals(GroupResult.Error.NO_PERMISSION, group.moveRole(admin, builder.uuid, up = true))
+        assertFalse(group.canMoveRole(admin, builder.uuid, up = true))
+        assertTrue(group.canMoveRole(owner, builder.uuid, up = true))
+    }
+
+    @Test
+    fun `deleteRole moves its members to Member`() {
+        val group = managedGroup()
+        val builder = group.addRole("Builder")
+        group.setRole(owner, member, builder.uuid)
+
+        assertEquals(GroupResult.Success, group.deleteRole(admin, builder.uuid))
+        assertNull(group.findRole(builder.uuid))
+        assertEquals(Kind.MEMBER, group.roleOf(member)?.kind)
+    }
+
+    @Test
+    fun `Owner and Member cannot be deleted`() {
+        val group = managedGroup()
+
+        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.deleteRole(owner, group.role("Owner").uuid))
+        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.deleteRole(owner, group.role("Member").uuid))
+        assertEquals(GroupResult.Error.NO_PERMISSION, group.deleteRole(admin, group.role("Admin").uuid))
+    }
+
     // --- names ---
 
     @Test

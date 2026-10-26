@@ -7,6 +7,7 @@ import net.civhorizons.horizons.groups.GroupResult
 import net.civhorizons.horizons.groups.GroupsModule.GroupDataStore
 import net.civhorizons.horizons.groups.groupsText
 import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent
+import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent.GroupRole.Permission
 import net.civhorizons.horizons.util.remove
 import net.civhorizons.horizons.util.save
 import java.util.UUID
@@ -124,6 +125,44 @@ class GroupsAPI(val storage: GroupDataStore) {
     ): GroupResult {
         val group = getMemberGroup(store, actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
         return saveIfSuccess(store, group, group.setRole(actor.uuid, target, role))
+    }
+
+    fun createRole(store: Store<EntityStore>, actor: PlayerRef, groupUuid: UUID, name: String): GroupResult {
+        val group = getMemberGroup(store, actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+        return saveIfSuccess(store, group, group.createRole(actor.uuid, name))
+    }
+
+    fun renameRole(
+        store: Store<EntityStore>,
+        actor: PlayerRef,
+        groupUuid: UUID,
+        role: UUID,
+        name: String,
+    ): GroupResult {
+        val group = getMemberGroup(store, actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+        return saveIfSuccess(store, group, group.renameRole(actor.uuid, role, name))
+    }
+
+    fun setRolePermission(
+        store: Store<EntityStore>,
+        actor: PlayerRef,
+        groupUuid: UUID,
+        role: UUID,
+        permission: Permission,
+        granted: Boolean,
+    ): GroupResult {
+        val group = getMemberGroup(store, actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+        return saveIfSuccess(store, group, group.setRolePermission(actor.uuid, role, permission, granted))
+    }
+
+    fun moveRole(store: Store<EntityStore>, actor: PlayerRef, groupUuid: UUID, role: UUID, up: Boolean): GroupResult {
+        val group = getMemberGroup(store, actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+        return saveIfSuccess(store, group, group.moveRole(actor.uuid, role, up))
+    }
+
+    fun deleteRole(store: Store<EntityStore>, actor: PlayerRef, groupUuid: UUID, role: UUID): GroupResult {
+        val group = getMemberGroup(store, actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+        return saveIfSuccess(store, group, group.deleteRole(actor.uuid, role))
     }
 
     /**

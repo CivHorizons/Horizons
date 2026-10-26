@@ -14,6 +14,9 @@ sealed interface GroupResult {
         NOT_INVITED("horizons-groups.error.notinvited"),
         NOT_MEMBER("horizons-groups.error.notmember"),
         ROLE_NOT_FOUND("horizons-groups.error.rolenotfound"),
+        ROLE_PROTECTED("horizons-groups.error.roleprotected"),
+        INVALID_ROLE_NAME("horizons-groups.error.invalidrolename"),
+        ROLE_NAME_TAKEN("horizons-groups.error.rolenametaken"),
         INVALID_NAME("horizons-groups.error.invalidname"),
         PLAYER_OFFLINE("horizons-groups.error.playeroffline"),
     }

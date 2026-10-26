@@ -151,6 +151,96 @@ class GroupsResource(
             if (hasPermission(actor, GroupRole.Permission.DELETE_GROUP)) GroupResult.Success
             else GroupResult.Error.NO_PERMISSION
 
+        fun canManageRole(actor: UUID, role: UUID): Boolean =
+            hasPermission(actor, GroupRole.Permission.MANAGE_ROLES) && outranks(actor, role)
+
+        fun createRole(actor: UUID, name: String): GroupResult {
+            if (!hasPermission(actor, GroupRole.Permission.MANAGE_ROLES)) return GroupResult.Error.NO_PERMISSION
+            val validName = validateName(name) ?: return GroupResult.Error.INVALID_ROLE_NAME
+            if (isRoleNameTaken(validName, except = null)) return GroupResult.Error.ROLE_NAME_TAKEN
+
+            // New roles start at the lowest custom rank, just above Member
+            roles = roles.toMutableList().apply { add(lastIndex, GroupRole(name = validName)) }.toTypedArray()
+            return GroupResult.Success
+        }
+
+        fun renameRole(actor: UUID, role: UUID, name: String): GroupResult {
+            val target = findRole(role) ?: return GroupResult.Error.ROLE_NOT_FOUND
+            if (!canManageRole(actor, role)) return GroupResult.Error.NO_PERMISSION
+            val validName = validateName(name) ?: return GroupResult.Error.INVALID_ROLE_NAME
+            if (isRoleNameTaken(validName, except = role)) return GroupResult.Error.ROLE_NAME_TAKEN
+
+            target.name = validName
+            return GroupResult.Success
+        }
+
+        fun setRolePermission(
+            actor: UUID,
+            role: UUID,
+            permission: GroupRole.Permission,
+            granted: Boolean,
+        ): GroupResult {
+            val target = findRole(role) ?: return GroupResult.Error.ROLE_NOT_FOUND
+            if (target.kind == GroupRole.Kind.OWNER) return GroupResult.Error.ROLE_PROTECTED
+            if (!canManageRole(actor, role)) return GroupResult.Error.NO_PERMISSION
+            // Nobody can hand out a permission they don't hold themselves
+            if (!hasPermission(actor, permission)) return GroupResult.Error.NO_PERMISSION
+
+            target.permissions = EnumMap<GroupRole.Permission, Boolean>(GroupRole.Permission::class.java).apply {
+                putAll(target.permissions)
+                put(permission, granted)
+            }
+            return GroupResult.Success
+        }
+
+        fun canMoveRole(actor: UUID, role: UUID, up: Boolean): Boolean =
+            checkMove(actor, role, up) == GroupResult.Success
+
+        /**
+         * Swap a custom role with its neighbour above or below.
+         */
+        fun moveRole(actor: UUID, role: UUID, up: Boolean): GroupResult {
+            val check = checkMove(actor, role, up)
+            if (check != GroupResult.Success) return check
+
+            val from = rankOf(role)
+            val to = if (up) from - 1 else from + 1
+            roles = roles.copyOf().also {
+                it[from] = roles[to]
+                it[to] = roles[from]
+            }
+            return GroupResult.Success
+        }
+
+        fun deleteRole(actor: UUID, role: UUID): GroupResult {
+            val target = findRole(role) ?: return GroupResult.Error.ROLE_NOT_FOUND
+            if (target.kind != GroupRole.Kind.CUSTOM) return GroupResult.Error.ROLE_PROTECTED
+            if (!canManageRole(actor, role)) return GroupResult.Error.NO_PERMISSION
+            val fallback = roleOfKind(GroupRole.Kind.MEMBER) ?: return GroupResult.Error.ROLE_NOT_FOUND
+
+            membership.replaceAll { _, data ->
+                if (data.roles.contains(role)) data.copy(roles = setOf(fallback.uuid)) else data
+            }
+            roles = roles.filter { it.uuid != role }.toTypedArray()
+            return GroupResult.Success
+        }
+
+        private fun checkMove(actor: UUID, role: UUID, up: Boolean): GroupResult {
+            val target = findRole(role) ?: return GroupResult.Error.ROLE_NOT_FOUND
+            if (target.kind != GroupRole.Kind.CUSTOM) return GroupResult.Error.ROLE_PROTECTED
+            if (!canManageRole(actor, role)) return GroupResult.Error.NO_PERMISSION
+
+            // Custom roles always sit between Owner and Member, so the neighbour always exists
+            val neighbour = roles[rankOf(role) + if (up) -1 else 1]
+            if (neighbour.kind != GroupRole.Kind.CUSTOM) return GroupResult.Error.ROLE_PROTECTED
+            // Swapping with a role the actor doesn't outrank would lift this role to the actor's own rank
+            if (!outranks(actor, neighbour.uuid)) return GroupResult.Error.NO_PERMISSION
+            return GroupResult.Success
+        }
+
+        private fun isRoleNameTaken(name: String, except: UUID?): Boolean =
+            roles.any { it.uuid != except && it.name.equals(name, ignoreCase = true) }
+
         companion object {
             const val DEFAULT_OWNER_ROLE = "Owner"
             const val DEFAULT_ADMIN_ROLE = "Admin"
