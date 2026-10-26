@@ -48,6 +48,7 @@ class GroupDetailPage(
         val me = playerRef.uuid
         val canInvite = group.hasPermission(me, Permission.INVITE_MEMBERS)
         val canDelete = group.hasPermission(me, Permission.DELETE_GROUP)
+        val canManageRoles = group.hasPermission(me, Permission.MANAGE_ROLES)
         commands.set("#PageTitle.Text", group.name)
         commands.set("#MembersHeader.Text", groupsText("ui.detail.members"))
         commands.set("#InvitesHeader.Text", groupsText("ui.detail.invites"))
@@ -57,6 +58,11 @@ class GroupDetailPage(
 
         commands.set("#InviteButton.Visible", canInvite)
         commands.set("#DeleteButton.Visible", canDelete)
+        commands.set("#RolesButton.Visible", canManageRoles)
+        if (canManageRoles) {
+            commands.set("#RolesButton.Text", groupsText("ui.detail.roles"))
+            bindAction(events, "#RolesButton", ROLES)
+        }
         if (canInvite) {
             commands.set("#InviteButton.Text", groupsText("ui.detail.invite"))
             bindAction(events, "#InviteButton", INVITE)
@@ -134,6 +140,7 @@ class GroupDetailPage(
         when (data.action) {
             BACK -> navigate(ref, store, GroupListPage(playerRef))
             INVITE -> navigate(ref, store, GroupInvitePage(playerRef, groupUuid))
+            ROLES -> navigate(ref, store, GroupRolesPage(playerRef, groupUuid))
             DELETE -> confirmDelete(ref, store, group)
             REMOVE -> data.targetUuid()?.let { confirmRemove(ref, store, group, it) }
             SET_ROLE -> data.targetUuid()?.let { setRole(store, group, it, data.value) }
@@ -203,5 +210,6 @@ class GroupDetailPage(
         const val REMOVE = "Remove"
         const val SET_ROLE = "SetRole"
         const val REVOKE = "Revoke"
+        const val ROLES = "Roles"
     }
 }

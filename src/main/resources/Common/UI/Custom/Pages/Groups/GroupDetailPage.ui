@@ -64,6 +64,11 @@ $C.@Container {
       Group #ManageButtons {
         LayoutMode: Left;
 
+        $C.@SecondaryTextButton #RolesButton {
+          @Text = "";
+          @Anchor = (Right: 6);
+        }
+
         $C.@TextButton #InviteButton {
           @Text = "";
           @Anchor = (Right: 6);

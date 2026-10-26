@@ -1,0 +1,51 @@
+$C = "../../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 650, Height: 700);
+
+  #Title {
+    Group {
+      $C.@Title #PageTitle {}
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Label #Status {
+      Anchor: (Bottom: 8);
+      Style: (TextColor: #ffcc66, Wrap: true);
+    }
+
+    Group #RoleList {
+      FlexWeight: 1;
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+    }
+
+    Group #CreateSection {
+      LayoutMode: Left;
+      Anchor: (Top: 8);
+
+      $C.@TextField #NameInput {
+        @Anchor = (Right: 6);
+        FlexWeight: 1;
+      }
+
+      $C.@TextButton #CreateButton {
+        @Text = "";
+      }
+    }
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Top: 8);
+
+      $C.@SecondaryTextButton #BackButton {
+        @Text = "";
+      }
+    }
+  }
+}

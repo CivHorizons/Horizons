@@ -9,7 +9,7 @@ import java.util.UUID
  * Event data shared by all group pages. Each page defines its own action names.
  *
  * - [action]: what was clicked
- * - [target]: the row it was clicked on (a group or player UUID)
+ * - [target]: the row it was clicked on (a group, player, or role UUID, or a permission name)
  * - [value]: a captured UI value, such as a text field or dropdown
  */
 class GroupsPageEvent {

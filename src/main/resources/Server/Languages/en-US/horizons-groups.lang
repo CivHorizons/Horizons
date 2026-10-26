@@ -50,6 +50,19 @@ ui.detail.deleteconfirm.title=Delete Group
 ui.detail.deleteconfirm.message=Delete "{name}"? This cannot be undone.
 ui.detail.removeconfirm.title=Remove Member
 ui.detail.removeconfirm.message=Remove {player} from "{name}"?
+ui.detail.roles=Roles
+
+ui.roles.title=Roles
+ui.roles.members={count} members
+ui.roles.name=New role name
+ui.roles.create=Create Role
+ui.roles.created=Created role "{role}".
+ui.roles.up=Up
+ui.roles.down=Down
+ui.roles.delete=Delete
+ui.roles.deleted=Deleted role "{role}".
+ui.roles.deleteconfirm.title=Delete Role
+ui.roles.deleteconfirm.message=Delete the role "{role}"? Its {count} members will become {member}.
 
 ui.invite.title=Invite Player
 ui.invite.search=Search players
