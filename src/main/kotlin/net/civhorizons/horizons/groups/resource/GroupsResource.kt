@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.Universe
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import net.civhorizons.horizons.Horizons
+import net.civhorizons.horizons.groups.GroupResult
 import java.util.EnumMap
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -24,6 +25,8 @@ class GroupsResource(
         return GroupsResource(ConcurrentHashMap(groups))
     }
 
+    // Guard clauses read as the rule list for each operation, and the group owns all of its rules.
+    @Suppress("ReturnCount", "TooManyFunctions")
     class GroupComponent(
         var uuid: UUID = UUID.randomUUID(),
         var name: String = "",
@@ -33,34 +36,102 @@ class GroupsResource(
     ) {
 
         /**
-         * Get all members on the group
+         * Return true if _any_ of the player's roles grants the permission
          */
-        fun members(): List<PlayerRef> {
-            return membership.keys.mapNotNull {
-                Universe.get().getPlayer(it)
-            }
+        fun hasPermission(player: UUID, permission: GroupRole.Permission): Boolean {
+            val activeRoleUUIDs = membership[player]?.roles ?: return false
+            return roles.any { activeRoleUUIDs.contains(it.uuid) && it.permissions[permission] == true }
         }
 
-        /**
-         * Return true if _any_ role grants the user a permission
-         */
-        fun playerHasPermission(player: PlayerRef, permission: GroupRole.Permission): Boolean {
-            val activeRoleUUIDs = membership[player.uuid]?.roles ?: return false
-            val activeRoles = roles.filter { activeRoleUUIDs.contains(it.uuid) }
-
-            return activeRoles.any { it.permissions[permission] == true }
-        }
+        fun playerHasPermission(player: PlayerRef, permission: GroupRole.Permission): Boolean =
+            hasPermission(player.uuid, permission)
 
         /**
          * Returns true if the player is any member of a group at all, even if they don't have a role assigned
          */
-        fun isPlayerOnGroup(player: PlayerRef): Boolean {
-            return membership[player.uuid] != null
+        fun isMember(player: UUID): Boolean = membership.containsKey(player)
+
+        fun isPlayerOnGroup(player: PlayerRef): Boolean = isMember(player.uuid)
+
+        /**
+         * The member's role. Members hold exactly one role.
+         */
+        fun roleOf(member: UUID): GroupRole? {
+            val roleUUIDs = membership[member]?.roles ?: return null
+            return roles.firstOrNull { roleUUIDs.contains(it.uuid) }
         }
+
+        /**
+         * Display name for a member: stored username, then online username, then UUID.
+         */
+        fun memberName(member: UUID): String =
+            membership[member]?.username?.takeIf { it.isNotEmpty() }
+                ?: Universe.get().getPlayer(member)?.username
+                ?: member.toString()
+
+        fun invite(actor: UUID, target: UUID, username: String): GroupResult {
+            if (!canManage(actor)) return GroupResult.Error.NO_PERMISSION
+            if (isMember(target)) return GroupResult.Error.ALREADY_MEMBER
+            if (invites.containsKey(target)) return GroupResult.Error.ALREADY_INVITED
+
+            invites[target] = GroupInviteData(inviter = actor, username = username)
+            return GroupResult.Success
+        }
+
+        fun acceptInvite(player: UUID, username: String): GroupResult {
+            if (!invites.containsKey(player)) return GroupResult.Error.NOT_INVITED
+            val memberRole = roles.find { it.name == DEFAULT_MEMBER_ROLE } ?: return GroupResult.Error.ROLE_NOT_FOUND
+
+            invites.remove(player)
+            membership[player] = GroupMembershipData(roles = setOf(memberRole.uuid), username = username)
+            return GroupResult.Success
+        }
+
+        fun declineInvite(player: UUID): GroupResult =
+            if (invites.remove(player) == null) GroupResult.Error.NOT_INVITED else GroupResult.Success
+
+        fun revokeInvite(actor: UUID, target: UUID): GroupResult {
+            if (!canManage(actor)) return GroupResult.Error.NO_PERMISSION
+            return if (invites.remove(target) == null) GroupResult.Error.NOT_INVITED else GroupResult.Success
+        }
+
+        fun removeMember(actor: UUID, target: UUID): GroupResult {
+            if (!canManage(actor)) return GroupResult.Error.NO_PERMISSION
+            if (!isMember(target)) return GroupResult.Error.NOT_MEMBER
+            if (isLastOwner(target)) return GroupResult.Error.LAST_OWNER
+
+            membership.remove(target)
+            return GroupResult.Success
+        }
+
+        fun setRole(actor: UUID, target: UUID, role: UUID): GroupResult {
+            if (!canManage(actor)) return GroupResult.Error.NO_PERMISSION
+            val current = membership[target] ?: return GroupResult.Error.NOT_MEMBER
+            val newRole = roles.find { it.uuid == role } ?: return GroupResult.Error.ROLE_NOT_FOUND
+            val keepsOwnership = newRole.permissions[GroupRole.Permission.MANAGE_GROUP] == true
+            if (!keepsOwnership && isLastOwner(target)) return GroupResult.Error.LAST_OWNER
+
+            membership[target] = current.copy(roles = setOf(newRole.uuid))
+            return GroupResult.Success
+        }
+
+        fun canDelete(actor: UUID): GroupResult =
+            if (canManage(actor)) GroupResult.Success else GroupResult.Error.NO_PERMISSION
+
+        private fun canManage(player: UUID) = hasPermission(player, GroupRole.Permission.MANAGE_GROUP)
+
+        private fun isLastOwner(player: UUID) =
+            canManage(player) && membership.keys.count { canManage(it) } <= 1
 
         companion object {
             const val DEFAULT_OWNER_ROLE = "Owner"
             const val DEFAULT_MEMBER_ROLE = "Member"
+            const val MAX_NAME_LENGTH = 32
+
+            /**
+             * Returns the trimmed name if it is a valid group name, or null.
+             */
+            fun validateName(raw: String): String? = raw.trim().takeIf { it.length in 1..MAX_NAME_LENGTH }
 
             fun getType() = Horizons.instance.groupsModule.groupsResourceType
 

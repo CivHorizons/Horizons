@@ -142,7 +142,7 @@ class GroupsCommand(val groupsApi: GroupsAPI) : AbstractPlayerCommand("groups", 
                     return
                 }
 
-                playerRef.sendMessage(Message.raw(group.members().joinToString(", ") { it.username }))
+                playerRef.sendMessage(Message.raw(group.membership.keys.joinToString(", ") { group.memberName(it) }))
             }
         }
 

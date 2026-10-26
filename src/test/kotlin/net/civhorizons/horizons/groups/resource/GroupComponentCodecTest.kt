@@ -1,5 +1,6 @@
 package net.civhorizons.horizons.groups.resource
 
+import com.hypixel.hytale.codec.ExtraInfo
 import net.civhorizons.horizons.groups.resource.GroupsResource.GroupComponent
 import org.bson.BsonDocument
 import java.util.UUID
@@ -11,13 +12,15 @@ class GroupComponentCodecTest {
 
     private val owner = UUID.randomUUID()
     private val invitee = UUID.randomUUID()
+    private val extraInfo = ExtraInfo.THREAD_LOCAL.get()
 
     @Test
     fun `round trips invites and usernames`() {
         val group = GroupComponent.createDefault("Test", owner, "Alice")
         group.invites[invitee] = GroupComponent.GroupInviteData(inviter = owner, username = "Bob")
 
-        val decoded = checkNotNull(GroupComponent.CODEC.decode(GroupComponent.CODEC.encode(group)))
+        val encoded = GroupComponent.CODEC.encode(group, extraInfo)
+        val decoded = checkNotNull(GroupComponent.CODEC.decode(encoded, extraInfo))
 
         assertEquals("Test", decoded.name)
         assertEquals("Alice", decoded.membership.getValue(owner).username)
@@ -43,7 +46,7 @@ class GroupComponentCodecTest {
             """.trimIndent()
         )
 
-        val decoded = checkNotNull(GroupComponent.CODEC.decode(legacy))
+        val decoded = checkNotNull(GroupComponent.CODEC.decode(legacy, extraInfo))
 
         assertEquals("test", decoded.name)
         assertTrue(decoded.invites.isEmpty())
