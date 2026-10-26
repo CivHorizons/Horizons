@@ -15,7 +15,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import net.civhorizons.horizons.groups.GroupsAPI
 import net.civhorizons.horizons.Horizons
 import net.civhorizons.horizons.groups.GroupsModule
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.groupsTranslation
 
 /**
  * Common behaviour for group pages: a #Status line, navigation, event binding, and error handling.
@@ -55,7 +55,7 @@ abstract class BaseGroupsPage(
         } catch (e: Exception) {
             GroupsModule.LOGGER.atSevere().withCause(e)
                 .log("Error handling %s action %s", javaClass.simpleName, data.action)
-            showStatus(groupsText("error.unexpected"))
+            showStatus(groupsTranslation("error.unexpected"))
         }
     }
 

@@ -1,6 +1,6 @@
 package net.civhorizons.horizons.groups.resource
 
-import net.civhorizons.horizons.groups.GroupResult
+import net.civhorizons.horizons.groups.GroupActionResult
 import net.civhorizons.horizons.groups.resource.GroupComponent
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Kind
@@ -90,11 +90,11 @@ class GroupComponentTest {
     fun `members without permissions cannot manage`() {
         val group = group()
 
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.invite(member, outsider, "Carol"))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.revokeInvite(member, outsider))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.removeMember(member, owner))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.setRole(member, admin, group.role("Member").uuid))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.canDelete(member))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.invite(member, outsider, "Carol"))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.revokeInvite(member, outsider))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.removeMember(member, owner))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.setRole(member, admin, group.role("Member").uuid))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.canDelete(member))
     }
 
     @Test
@@ -102,15 +102,15 @@ class GroupComponentTest {
         val group = group()
         group.role("Member").permissions = mapOf(Permission.INVITE_MEMBERS to true)
 
-        assertEquals(GroupResult.Success, group.invite(member, outsider, "Carol"))
+        assertEquals(GroupActionResult.Success, group.invite(member, outsider, "Carol"))
     }
 
     @Test
     fun `delete group requires DELETE_GROUP`() {
         val group = group()
 
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.canDelete(admin))
-        assertEquals(GroupResult.Success, group.canDelete(owner))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.canDelete(admin))
+        assertEquals(GroupActionResult.Success, group.canDelete(owner))
     }
 
     // --- ranking ---
@@ -119,12 +119,12 @@ class GroupComponentTest {
     fun `owners outrank every role, others only roles below their own`() {
         val group = group()
 
-        group.roles.forEach { assertTrue(group.outranks(owner, it.uuid)) }
-        assertFalse(group.outranks(admin, group.role("Owner").uuid))
-        assertFalse(group.outranks(admin, group.role("Admin").uuid))
-        assertTrue(group.outranks(admin, group.role("Member").uuid))
-        assertFalse(group.outranks(admin, UUID.randomUUID()))
-        assertFalse(group.outranks(outsider, group.role("Member").uuid))
+        group.roles.forEach { assertTrue(group.outranksRole(owner, it.uuid)) }
+        assertFalse(group.outranksRole(admin, group.role("Owner").uuid))
+        assertFalse(group.outranksRole(admin, group.role("Admin").uuid))
+        assertTrue(group.outranksRole(admin, group.role("Member").uuid))
+        assertFalse(group.outranksRole(admin, UUID.randomUUID()))
+        assertFalse(group.outranksRole(outsider, group.role("Member").uuid))
     }
 
     @Test
@@ -151,18 +151,18 @@ class GroupComponentTest {
     fun `admins can invite`() {
         val group = group()
 
-        assertEquals(GroupResult.Success, group.invite(admin, outsider, "Carol"))
+        assertEquals(GroupActionResult.Success, group.invite(admin, outsider, "Carol"))
         assertEquals(GroupComponent.GroupInviteData(admin, "Carol"), group.invites[outsider])
-        assertEquals(GroupResult.Success, group.revokeInvite(admin, outsider))
+        assertEquals(GroupActionResult.Success, group.revokeInvite(admin, outsider))
     }
 
     @Test
     fun `cannot invite a member or invite twice`() {
         val group = group()
 
-        assertEquals(GroupResult.Error.ALREADY_MEMBER, group.invite(owner, member, "Bob"))
+        assertEquals(GroupActionResult.Error.ALREADY_MEMBER, group.invite(owner, member, "Bob"))
         group.invite(owner, outsider, "Carol")
-        assertEquals(GroupResult.Error.ALREADY_INVITED, group.invite(owner, outsider, "Carol"))
+        assertEquals(GroupActionResult.Error.ALREADY_INVITED, group.invite(owner, outsider, "Carol"))
     }
 
     @Test
@@ -170,7 +170,7 @@ class GroupComponentTest {
         val group = group()
         group.invite(owner, outsider, "Carol")
 
-        assertEquals(GroupResult.Success, group.acceptInvite(outsider, "Carol"))
+        assertEquals(GroupActionResult.Success, group.acceptInvite(outsider, "Carol"))
         assertFalse(group.invites.containsKey(outsider))
         assertEquals(setOf(group.role("Member").uuid), group.membership.getValue(outsider).roles)
         assertEquals("Carol", group.membership.getValue(outsider).username)
@@ -182,7 +182,7 @@ class GroupComponentTest {
         group.role("Member").name = "Citizen"
         group.invite(owner, outsider, "Carol")
 
-        assertEquals(GroupResult.Success, group.acceptInvite(outsider, "Carol"))
+        assertEquals(GroupActionResult.Success, group.acceptInvite(outsider, "Carol"))
         assertEquals(Kind.MEMBER, group.roleOf(outsider)?.kind)
     }
 
@@ -190,8 +190,8 @@ class GroupComponentTest {
     fun `accept and decline require an invite`() {
         val group = group()
 
-        assertEquals(GroupResult.Error.NOT_INVITED, group.acceptInvite(outsider, "Carol"))
-        assertEquals(GroupResult.Error.NOT_INVITED, group.declineInvite(outsider))
+        assertEquals(GroupActionResult.Error.NOT_INVITED, group.acceptInvite(outsider, "Carol"))
+        assertEquals(GroupActionResult.Error.NOT_INVITED, group.declineInvite(outsider))
         assertFalse(group.isMember(outsider))
     }
 
@@ -199,13 +199,13 @@ class GroupComponentTest {
     fun `decline and revoke remove the invite`() {
         val group = group()
         group.invite(owner, outsider, "Carol")
-        assertEquals(GroupResult.Success, group.declineInvite(outsider))
+        assertEquals(GroupActionResult.Success, group.declineInvite(outsider))
         assertFalse(group.invites.containsKey(outsider))
 
         group.invite(owner, outsider, "Carol")
-        assertEquals(GroupResult.Success, group.revokeInvite(owner, outsider))
+        assertEquals(GroupActionResult.Success, group.revokeInvite(owner, outsider))
         assertFalse(group.invites.containsKey(outsider))
-        assertEquals(GroupResult.Error.NOT_INVITED, group.revokeInvite(owner, outsider))
+        assertEquals(GroupActionResult.Error.NOT_INVITED, group.revokeInvite(owner, outsider))
     }
 
     // --- removing members ---
@@ -214,9 +214,9 @@ class GroupComponentTest {
     fun `admins remove members below them`() {
         val group = group()
 
-        assertEquals(GroupResult.Success, group.removeMember(admin, member))
+        assertEquals(GroupActionResult.Success, group.removeMember(admin, member))
         assertFalse(group.isMember(member))
-        assertEquals(GroupResult.Error.NOT_MEMBER, group.removeMember(admin, member))
+        assertEquals(GroupActionResult.Error.NOT_MEMBER, group.removeMember(admin, member))
     }
 
     @Test
@@ -225,15 +225,15 @@ class GroupComponentTest {
         group.join(outsider, "Carol")
         group.setRole(owner, outsider, group.role("Admin").uuid)
 
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.removeMember(admin, owner))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.removeMember(admin, outsider))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.removeMember(admin, owner))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.removeMember(admin, outsider))
     }
 
     @Test
     fun `nobody can remove themselves, so the last owner stays`() {
         val group = group()
 
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.removeMember(owner, owner))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.removeMember(owner, owner))
         assertTrue(group.isMember(owner))
     }
 
@@ -242,7 +242,7 @@ class GroupComponentTest {
         val group = group()
         group.setRole(owner, admin, group.role("Owner").uuid)
 
-        assertEquals(GroupResult.Success, group.removeMember(admin, owner))
+        assertEquals(GroupActionResult.Success, group.removeMember(admin, owner))
     }
 
     // --- assigning roles ---
@@ -252,23 +252,23 @@ class GroupComponentTest {
         val group = group()
         val builder = group.addRole("Builder")
 
-        assertEquals(GroupResult.Success, group.setRole(admin, member, builder.uuid))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.setRole(admin, member, group.role("Admin").uuid))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.setRole(admin, member, group.role("Owner").uuid))
+        assertEquals(GroupActionResult.Success, group.setRole(admin, member, builder.uuid))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.setRole(admin, member, group.role("Admin").uuid))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.setRole(admin, member, group.role("Owner").uuid))
     }
 
     @Test
     fun `admins cannot change the role of owners`() {
         val group = group()
 
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.setRole(admin, owner, group.role("Member").uuid))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.setRole(admin, owner, group.role("Member").uuid))
     }
 
     @Test
     fun `nobody can change their own role, so the last owner stays`() {
         val group = group()
 
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.setRole(owner, owner, group.role("Member").uuid))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.setRole(owner, owner, group.role("Member").uuid))
         assertEquals(Kind.OWNER, group.roleOf(owner)?.kind)
     }
 
@@ -276,8 +276,8 @@ class GroupComponentTest {
     fun `owners can promote to owner and demote other owners`() {
         val group = group()
 
-        assertEquals(GroupResult.Success, group.setRole(owner, member, group.role("Owner").uuid))
-        assertEquals(GroupResult.Success, group.setRole(member, owner, group.role("Member").uuid))
+        assertEquals(GroupActionResult.Success, group.setRole(owner, member, group.role("Owner").uuid))
+        assertEquals(GroupActionResult.Success, group.setRole(member, owner, group.role("Member").uuid))
         assertEquals(Kind.MEMBER, group.roleOf(owner)?.kind)
         assertEquals(Kind.OWNER, group.roleOf(member)?.kind)
     }
@@ -296,8 +296,8 @@ class GroupComponentTest {
     fun `setRole validates target and role`() {
         val group = group()
 
-        assertEquals(GroupResult.Error.NOT_MEMBER, group.setRole(owner, outsider, group.role("Owner").uuid))
-        assertEquals(GroupResult.Error.ROLE_NOT_FOUND, group.setRole(owner, member, UUID.randomUUID()))
+        assertEquals(GroupActionResult.Error.NOT_MEMBER, group.setRole(owner, outsider, group.role("Owner").uuid))
+        assertEquals(GroupActionResult.Error.ROLE_NOT_FOUND, group.setRole(owner, member, UUID.randomUUID()))
     }
 
     // --- managing roles ---
@@ -316,13 +316,13 @@ class GroupComponentTest {
         val group = group()
         val builder = group.addRole("Builder")
 
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.createRole(admin, "Guard"))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.renameRole(admin, builder.uuid, "Guard"))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.createRole(admin, "Guard"))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.renameRole(admin, builder.uuid, "Guard"))
         assertEquals(
-            GroupResult.Error.NO_PERMISSION,
+            GroupActionResult.Error.NO_PERMISSION,
             group.setRolePermission(admin, builder.uuid, Permission.INVITE_MEMBERS, true),
         )
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.deleteRole(admin, builder.uuid))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.deleteRole(admin, builder.uuid))
         assertFalse(group.canManageRole(admin, builder.uuid))
     }
 
@@ -330,7 +330,7 @@ class GroupComponentTest {
     fun `createRole inserts just above Member`() {
         val group = managedGroup()
 
-        assertEquals(GroupResult.Success, group.createRole(admin, "  Guard  "))
+        assertEquals(GroupActionResult.Success, group.createRole(admin, "  Guard  "))
         assertEquals(listOf("Owner", "Admin", "Guard", "Member"), group.roles.map { it.name })
         assertEquals(Kind.CUSTOM, group.role("Guard").kind)
         assertTrue(group.role("Guard").permissions.none { it.value })
@@ -340,10 +340,13 @@ class GroupComponentTest {
     fun `role names are validated and unique ignoring case`() {
         val group = managedGroup()
 
-        assertEquals(GroupResult.Error.INVALID_ROLE_NAME, group.createRole(owner, "   "))
-        assertEquals(GroupResult.Error.INVALID_ROLE_NAME, group.createRole(owner, "x".repeat(33)))
-        assertEquals(GroupResult.Error.ROLE_NAME_TAKEN, group.createRole(owner, "admin"))
-        assertEquals(GroupResult.Error.ROLE_NAME_TAKEN, group.renameRole(owner, group.role("Admin").uuid, "MEMBER"))
+        assertEquals(GroupActionResult.Error.INVALID_ROLE_NAME, group.createRole(owner, "   "))
+        assertEquals(GroupActionResult.Error.INVALID_ROLE_NAME, group.createRole(owner, "x".repeat(33)))
+        assertEquals(GroupActionResult.Error.ROLE_NAME_TAKEN, group.createRole(owner, "admin"))
+        assertEquals(
+            GroupActionResult.Error.ROLE_NAME_TAKEN,
+            group.renameRole(owner, group.role("Admin").uuid, "MEMBER"),
+        )
     }
 
     @Test
@@ -351,18 +354,18 @@ class GroupComponentTest {
         val group = managedGroup()
         val memberRole = group.role("Member").uuid
 
-        assertEquals(GroupResult.Success, group.renameRole(owner, memberRole, "Citizen"))
+        assertEquals(GroupActionResult.Success, group.renameRole(owner, memberRole, "Citizen"))
         assertEquals("Citizen", group.findRole(memberRole)?.name)
-        assertEquals(GroupResult.Success, group.renameRole(owner, memberRole, "CITIZEN"))
-        assertEquals(GroupResult.Success, group.renameRole(owner, group.role("Owner").uuid, "Mayor"))
+        assertEquals(GroupActionResult.Success, group.renameRole(owner, memberRole, "CITIZEN"))
+        assertEquals(GroupActionResult.Success, group.renameRole(owner, group.role("Owner").uuid, "Mayor"))
     }
 
     @Test
     fun `cannot manage roles at or above your own`() {
         val group = managedGroup()
 
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.renameRole(admin, group.role("Admin").uuid, "Boss"))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.renameRole(admin, group.role("Owner").uuid, "Boss"))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.renameRole(admin, group.role("Admin").uuid, "Boss"))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.renameRole(admin, group.role("Owner").uuid, "Boss"))
         assertTrue(group.canManageRole(admin, group.role("Member").uuid))
         assertFalse(group.canManageRole(admin, group.role("Admin").uuid))
     }
@@ -372,9 +375,15 @@ class GroupComponentTest {
         val group = managedGroup()
         val memberRole = group.role("Member").uuid
 
-        assertEquals(GroupResult.Success, group.setRolePermission(admin, memberRole, Permission.INVITE_MEMBERS, true))
+        assertEquals(
+            GroupActionResult.Success,
+            group.setRolePermission(admin, memberRole, Permission.INVITE_MEMBERS, true),
+        )
         assertTrue(group.hasPermission(member, Permission.INVITE_MEMBERS))
-        assertEquals(GroupResult.Success, group.setRolePermission(admin, memberRole, Permission.INVITE_MEMBERS, false))
+        assertEquals(
+            GroupActionResult.Success,
+            group.setRolePermission(admin, memberRole, Permission.INVITE_MEMBERS, false),
+        )
         assertFalse(group.hasPermission(member, Permission.INVITE_MEMBERS))
     }
 
@@ -383,7 +392,7 @@ class GroupComponentTest {
         val group = managedGroup()
 
         assertEquals(
-            GroupResult.Error.NO_PERMISSION,
+            GroupActionResult.Error.NO_PERMISSION,
             group.setRolePermission(admin, group.role("Member").uuid, Permission.DELETE_GROUP, true),
         )
     }
@@ -393,7 +402,7 @@ class GroupComponentTest {
         val group = managedGroup()
 
         assertEquals(
-            GroupResult.Error.ROLE_PROTECTED,
+            GroupActionResult.Error.ROLE_PROTECTED,
             group.setRolePermission(owner, group.role("Owner").uuid, Permission.DELETE_GROUP, false),
         )
     }
@@ -403,13 +412,13 @@ class GroupComponentTest {
         val group = managedGroup()
         val missing = UUID.randomUUID()
 
-        assertEquals(GroupResult.Error.ROLE_NOT_FOUND, group.renameRole(owner, missing, "Guard"))
+        assertEquals(GroupActionResult.Error.ROLE_NOT_FOUND, group.renameRole(owner, missing, "Guard"))
         assertEquals(
-            GroupResult.Error.ROLE_NOT_FOUND,
+            GroupActionResult.Error.ROLE_NOT_FOUND,
             group.setRolePermission(owner, missing, Permission.INVITE_MEMBERS, true),
         )
-        assertEquals(GroupResult.Error.ROLE_NOT_FOUND, group.moveRole(owner, missing, up = true))
-        assertEquals(GroupResult.Error.ROLE_NOT_FOUND, group.deleteRole(owner, missing))
+        assertEquals(GroupActionResult.Error.ROLE_NOT_FOUND, group.moveRole(owner, missing, up = true))
+        assertEquals(GroupActionResult.Error.ROLE_NOT_FOUND, group.deleteRole(owner, missing))
     }
 
     @Test
@@ -418,9 +427,9 @@ class GroupComponentTest {
         group.addRole("Builder")
         group.addRole("Guard")
 
-        assertEquals(GroupResult.Success, group.moveRole(owner, group.role("Guard").uuid, up = true))
+        assertEquals(GroupActionResult.Success, group.moveRole(owner, group.role("Guard").uuid, up = true))
         assertEquals(listOf("Owner", "Admin", "Guard", "Builder", "Member"), group.roles.map { it.name })
-        assertEquals(GroupResult.Success, group.moveRole(admin, group.role("Guard").uuid, up = false))
+        assertEquals(GroupActionResult.Success, group.moveRole(admin, group.role("Guard").uuid, up = false))
         assertEquals(listOf("Owner", "Admin", "Builder", "Guard", "Member"), group.roles.map { it.name })
     }
 
@@ -429,12 +438,18 @@ class GroupComponentTest {
         val group = managedGroup()
         val builder = group.addRole("Builder")
 
-        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.moveRole(owner, group.role("Owner").uuid, up = false))
-        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.moveRole(owner, group.role("Member").uuid, up = true))
-        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.moveRole(owner, group.role("Admin").uuid, up = true))
-        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.moveRole(owner, builder.uuid, up = false))
+        assertEquals(
+            GroupActionResult.Error.ROLE_PROTECTED,
+            group.moveRole(owner, group.role("Owner").uuid, up = false),
+        )
+        assertEquals(
+            GroupActionResult.Error.ROLE_PROTECTED,
+            group.moveRole(owner, group.role("Member").uuid, up = true),
+        )
+        assertEquals(GroupActionResult.Error.ROLE_PROTECTED, group.moveRole(owner, group.role("Admin").uuid, up = true))
+        assertEquals(GroupActionResult.Error.ROLE_PROTECTED, group.moveRole(owner, builder.uuid, up = false))
         // Moving Builder up would swap it with Admin, lifting it to the actor's own rank
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.moveRole(admin, builder.uuid, up = true))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.moveRole(admin, builder.uuid, up = true))
         assertFalse(group.canMoveRole(admin, builder.uuid, up = true))
         assertTrue(group.canMoveRole(owner, builder.uuid, up = true))
     }
@@ -445,7 +460,7 @@ class GroupComponentTest {
         val builder = group.addRole("Builder")
         group.setRole(owner, member, builder.uuid)
 
-        assertEquals(GroupResult.Success, group.deleteRole(admin, builder.uuid))
+        assertEquals(GroupActionResult.Success, group.deleteRole(admin, builder.uuid))
         assertNull(group.findRole(builder.uuid))
         assertEquals(Kind.MEMBER, group.roleOf(member)?.kind)
     }
@@ -454,9 +469,9 @@ class GroupComponentTest {
     fun `Owner and Member cannot be deleted`() {
         val group = managedGroup()
 
-        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.deleteRole(owner, group.role("Owner").uuid))
-        assertEquals(GroupResult.Error.ROLE_PROTECTED, group.deleteRole(owner, group.role("Member").uuid))
-        assertEquals(GroupResult.Error.NO_PERMISSION, group.deleteRole(admin, group.role("Admin").uuid))
+        assertEquals(GroupActionResult.Error.ROLE_PROTECTED, group.deleteRole(owner, group.role("Owner").uuid))
+        assertEquals(GroupActionResult.Error.ROLE_PROTECTED, group.deleteRole(owner, group.role("Member").uuid))
+        assertEquals(GroupActionResult.Error.NO_PERMISSION, group.deleteRole(admin, group.role("Admin").uuid))
     }
 
     // --- names ---

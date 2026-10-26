@@ -7,8 +7,8 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.groups.GroupResult
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.GroupActionResult
+import net.civhorizons.horizons.groups.groupsTranslation
 import net.civhorizons.horizons.groups.resource.GroupComponent
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Kind
@@ -33,29 +33,29 @@ class GroupRoleEditPage(
         store: Store<EntityStore>,
     ) {
         commands.append("Pages/Groups/GroupRoleEditPage.ui")
-        commands.set("#BackButton.Text", groupsText("ui.common.back"))
+        commands.set("#BackButton.Text", groupsTranslation("ui.common.back"))
         bindAction(events, "#BackButton", BACK)
 
         val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         val role = group?.findRole(roleUuid)
         if (group == null || role == null) {
             commands.set("#Body.Visible", false)
-            val error = if (group == null) GroupResult.Error.NOT_FOUND else GroupResult.Error.ROLE_NOT_FOUND
+            val error = if (group == null) GroupActionResult.Error.NOT_FOUND else GroupActionResult.Error.ROLE_NOT_FOUND
             status = error.toMessage()
             return
         }
 
         val canEdit = group.canManageRole(playerRef.uuid, roleUuid)
         commands.set("#PageTitle.Text", role.name)
-        commands.set("#PermissionsHeader.Text", groupsText("ui.roleedit.permissions"))
-        commands.set("#OwnerNote.Text", groupsText("ui.roleedit.ownernote"))
+        commands.set("#PermissionsHeader.Text", groupsTranslation("ui.roleedit.permissions"))
+        commands.set("#OwnerNote.Text", groupsTranslation("ui.roleedit.ownernote"))
         commands.set("#OwnerNote.Visible", role.kind == Kind.OWNER)
 
         commands.set("#RenameSection.Visible", canEdit)
         if (canEdit) {
             commands.set("#NameInput.Value", role.name)
-            commands.set("#NameInput.PlaceholderText", groupsText("ui.roleedit.name"))
-            commands.set("#RenameButton.Text", groupsText("ui.roleedit.rename"))
+            commands.set("#NameInput.PlaceholderText", groupsTranslation("ui.roleedit.name"))
+            commands.set("#RenameButton.Text", groupsTranslation("ui.roleedit.rename"))
             bindAction(events, "#RenameButton", RENAME, capture = "#NameInput.Value")
         }
 
@@ -77,8 +77,8 @@ class GroupRoleEditPage(
             val editable = canEdit && role.kind != Kind.OWNER && group.hasPermission(playerRef.uuid, permission)
 
             commands.append("#PermissionList", "Pages/Groups/PermissionRow.ui")
-            commands.set("$row #Name.Text", groupsText("permission.$key.name"))
-            commands.set("$row #Description.Text", groupsText("permission.$key.description"))
+            commands.set("$row #Name.Text", groupsTranslation("permission.$key.name"))
+            commands.set("$row #Description.Text", groupsTranslation("permission.$key.description"))
             commands.set("$row #CheckBox.Value", granted)
             commands.set("$row #CheckBox.Disabled", !editable)
             // Bound even when disabled: if the client toggles anyway, the API rejects it and the refresh snaps it back
@@ -89,12 +89,13 @@ class GroupRoleEditPage(
     override fun handleEvent(ref: Ref<EntityStore>, store: Store<EntityStore>, data: GroupsPageEvent) {
         val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
-            navigate(ref, store, GroupListPage(playerRef, GroupResult.Error.NOT_FOUND.toMessage()))
+            navigate(ref, store, GroupListPage(playerRef, GroupActionResult.Error.NOT_FOUND.toMessage()))
             return
         }
         val role = group.findRole(roleUuid)
         if (role == null) {
-            navigate(ref, store, GroupRolesPage(playerRef, groupUuid, GroupResult.Error.ROLE_NOT_FOUND.toMessage()))
+            val error = GroupActionResult.Error.ROLE_NOT_FOUND.toMessage()
+            navigate(ref, store, GroupRolesPage(playerRef, groupUuid, error))
             return
         }
 
@@ -107,7 +108,7 @@ class GroupRoleEditPage(
 
     private fun rename(name: String) {
         val result = groupsApi.renameRole(playerRef, groupUuid, roleUuid, name)
-        refresh(result.toMessage { groupsText("ui.roleedit.renamed").param("role", name.trim()) })
+        refresh(result.toMessage { groupsTranslation("ui.roleedit.renamed").param("role", name.trim()) })
     }
 
     private fun toggle(role: GroupRole, permission: Permission) {
@@ -115,7 +116,7 @@ class GroupRoleEditPage(
         val granted = role.permissions[permission] != true
         val result = groupsApi.setRolePermission(playerRef, groupUuid, roleUuid, permission, granted)
         // Refresh either way so a rejected toggle snaps the checkbox back
-        refresh((result as? GroupResult.Error)?.toMessage())
+        refresh((result as? GroupActionResult.Error)?.toMessage())
     }
 
     private companion object {

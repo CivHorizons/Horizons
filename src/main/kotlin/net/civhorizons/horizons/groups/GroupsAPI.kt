@@ -91,33 +91,33 @@ class GroupsAPI(val storage: GroupDataStore) {
         return createOrUpdateGroup(GroupComponent.createDefault(validName, playerRef.uuid, playerRef.username))
     }
 
-    fun invitePlayer(actor: PlayerRef, groupUuid: UUID, target: PlayerRef): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    fun invitePlayer(actor: PlayerRef, groupUuid: UUID, target: PlayerRef): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         val result = mutate(group) { group.invite(actor.uuid, target.uuid, target.username) }
 
-        if (result == GroupResult.Success) {
-            target.sendMessage(groupsText("invite.received").param("name", group.name))
+        if (result == GroupActionResult.Success) {
+            target.sendMessage(groupsTranslation("invite.received").param("name", group.name))
         }
         return result
     }
 
-    fun acceptInvite(player: PlayerRef, groupUuid: UUID): GroupResult {
-        val group = getGroup(groupUuid) ?: return GroupResult.Error.NOT_INVITED
+    fun acceptInvite(player: PlayerRef, groupUuid: UUID): GroupActionResult {
+        val group = getGroup(groupUuid) ?: return GroupActionResult.Error.NOT_INVITED
         return mutate(group) { group.acceptInvite(player.uuid, player.username) }
     }
 
-    fun declineInvite(player: PlayerRef, groupUuid: UUID): GroupResult {
-        val group = getGroup(groupUuid) ?: return GroupResult.Error.NOT_INVITED
+    fun declineInvite(player: PlayerRef, groupUuid: UUID): GroupActionResult {
+        val group = getGroup(groupUuid) ?: return GroupActionResult.Error.NOT_INVITED
         return mutate(group) { group.declineInvite(player.uuid) }
     }
 
-    fun revokeInvite(actor: PlayerRef, groupUuid: UUID, target: UUID): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    fun revokeInvite(actor: PlayerRef, groupUuid: UUID, target: UUID): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return mutate(group) { group.revokeInvite(actor.uuid, target) }
     }
 
-    fun removeMember(actor: PlayerRef, groupUuid: UUID, target: UUID): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    fun removeMember(actor: PlayerRef, groupUuid: UUID, target: UUID): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return mutate(group) { group.removeMember(actor.uuid, target) }
     }
 
@@ -126,13 +126,13 @@ class GroupsAPI(val storage: GroupDataStore) {
         groupUuid: UUID,
         target: UUID,
         role: UUID,
-    ): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    ): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return mutate(group) { group.setRole(actor.uuid, target, role) }
     }
 
-    fun createRole(actor: PlayerRef, groupUuid: UUID, name: String): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    fun createRole(actor: PlayerRef, groupUuid: UUID, name: String): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return mutate(group) { group.createRole(actor.uuid, name) }
     }
 
@@ -141,8 +141,8 @@ class GroupsAPI(val storage: GroupDataStore) {
         groupUuid: UUID,
         role: UUID,
         name: String,
-    ): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    ): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return mutate(group) { group.renameRole(actor.uuid, role, name) }
     }
 
@@ -152,18 +152,18 @@ class GroupsAPI(val storage: GroupDataStore) {
         role: UUID,
         permission: Permission,
         granted: Boolean,
-    ): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    ): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return mutate(group) { group.setRolePermission(actor.uuid, role, permission, granted) }
     }
 
-    fun moveRole(actor: PlayerRef, groupUuid: UUID, role: UUID, up: Boolean): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    fun moveRole(actor: PlayerRef, groupUuid: UUID, role: UUID, up: Boolean): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return mutate(group) { group.moveRole(actor.uuid, role, up) }
     }
 
-    fun deleteRole(actor: PlayerRef, groupUuid: UUID, role: UUID): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    fun deleteRole(actor: PlayerRef, groupUuid: UUID, role: UUID): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return mutate(group) { group.deleteRole(actor.uuid, role) }
     }
 
@@ -172,15 +172,15 @@ class GroupsAPI(val storage: GroupDataStore) {
      *
      * TODO: Turn this into a soft delete. See https://github.com/CivHorizons/Horizons/issues/20
      */
-    fun deleteGroup(actor: PlayerRef, groupUuid: UUID): GroupResult {
-        val group = getMemberGroup(actor, groupUuid) ?: return GroupResult.Error.NOT_FOUND
+    fun deleteGroup(actor: PlayerRef, groupUuid: UUID): GroupActionResult {
+        val group = getMemberGroup(actor, groupUuid) ?: return GroupActionResult.Error.NOT_FOUND
         return synchronized(group) {
             // Another world may have deleted it since it was looked up
             if (groups[group.uuid] !== group) {
-                GroupResult.Error.NOT_FOUND
+                GroupActionResult.Error.NOT_FOUND
             } else {
                 group.canDelete(actor.uuid).also {
-                    if (it == GroupResult.Success) {
+                    if (it == GroupActionResult.Success) {
                         groups.remove(group.uuid)
                         storage.remove(group.uuid)
                     }
@@ -197,9 +197,9 @@ class GroupsAPI(val storage: GroupDataStore) {
             .filter { it.membership[player.uuid]?.username != player.username }
             .forEach { group ->
                 mutate(group) {
-                    val membership = group.membership[player.uuid] ?: return@mutate GroupResult.Error.NOT_MEMBER
+                    val membership = group.membership[player.uuid] ?: return@mutate GroupActionResult.Error.NOT_MEMBER
                     group.membership[player.uuid] = membership.copy(username = player.username)
-                    GroupResult.Success
+                    GroupActionResult.Success
                 }
             }
     }
@@ -208,9 +208,12 @@ class GroupsAPI(val storage: GroupDataStore) {
      * Apply [change] to the group while holding its lock, then save it if the change succeeded. Another world
      * may have deleted the group since it was looked up, so a group that is no longer registered isn't saved.
      */
-    private fun mutate(group: GroupComponent, change: () -> GroupResult): GroupResult = synchronized(group) {
-        if (groups[group.uuid] !== group) return GroupResult.Error.NOT_FOUND
+    private fun mutate(
+        group: GroupComponent,
+        change: () -> GroupActionResult,
+    ): GroupActionResult = synchronized(group) {
+        if (groups[group.uuid] !== group) return GroupActionResult.Error.NOT_FOUND
 
-        change().also { if (it == GroupResult.Success) storage.save(group.uuid, group) }
+        change().also { if (it == GroupActionResult.Success) storage.save(group.uuid, group) }
     }
 }

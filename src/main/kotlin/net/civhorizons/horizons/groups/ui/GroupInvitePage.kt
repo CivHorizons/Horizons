@@ -8,8 +8,8 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.Universe
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.groups.GroupResult
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.GroupActionResult
+import net.civhorizons.horizons.groups.groupsTranslation
 import net.civhorizons.horizons.groups.resource.GroupComponent
 import net.civhorizons.horizons.groups.toMessage
 import java.util.UUID
@@ -32,18 +32,18 @@ class GroupInvitePage(
         store: Store<EntityStore>,
     ) {
         commands.append("Pages/Groups/GroupInvitePage.ui")
-        commands.set("#PageTitle.Text", groupsText("ui.invite.title"))
-        commands.set("#SearchInput.PlaceholderText", groupsText("ui.invite.search"))
+        commands.set("#PageTitle.Text", groupsTranslation("ui.invite.title"))
+        commands.set("#SearchInput.PlaceholderText", groupsTranslation("ui.invite.search"))
         commands.set("#SearchInput.Value", search)
-        commands.set("#EmptyLabel.Text", groupsText("ui.invite.empty"))
-        commands.set("#BackButton.Text", groupsText("ui.common.back"))
+        commands.set("#EmptyLabel.Text", groupsTranslation("ui.invite.empty"))
+        commands.set("#BackButton.Text", groupsTranslation("ui.common.back"))
         bindAction(events, "#BackButton", BACK)
         bindValueChanged(events, "#SearchInput", SEARCH, capture = "#SearchInput.Value")
 
         val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
             commands.set("#EmptyLabel.Visible", false)
-            status = GroupResult.Error.NOT_FOUND.toMessage()
+            status = GroupActionResult.Error.NOT_FOUND.toMessage()
             return
         }
         buildPlayerList(group, commands, events)
@@ -70,7 +70,7 @@ class GroupInvitePage(
     override fun handleEvent(ref: Ref<EntityStore>, store: Store<EntityStore>, data: GroupsPageEvent) {
         val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
-            navigate(ref, store, GroupListPage(playerRef, GroupResult.Error.NOT_FOUND.toMessage()))
+            navigate(ref, store, GroupListPage(playerRef, GroupActionResult.Error.NOT_FOUND.toMessage()))
             return
         }
 
@@ -91,16 +91,16 @@ class GroupInvitePage(
     private fun invite(ref: Ref<EntityStore>, store: Store<EntityStore>, targetUuid: UUID) {
         val target = Universe.get().getPlayer(targetUuid)
         if (target == null) {
-            refresh(GroupResult.Error.PLAYER_OFFLINE.toMessage())
+            refresh(GroupActionResult.Error.PLAYER_OFFLINE.toMessage())
             return
         }
 
         when (val result = groupsApi.invitePlayer(playerRef, groupUuid, target)) {
-            GroupResult.Success -> {
-                val sent = groupsText("ui.invite.sent").param("player", target.username)
+            GroupActionResult.Success -> {
+                val sent = groupsTranslation("ui.invite.sent").param("player", target.username)
                 navigate(ref, store, GroupDetailPage(playerRef, groupUuid, sent))
             }
-            is GroupResult.Error -> refresh(result.toMessage())
+            is GroupActionResult.Error -> refresh(result.toMessage())
         }
     }
 

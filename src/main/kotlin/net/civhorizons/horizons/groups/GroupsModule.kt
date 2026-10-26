@@ -5,7 +5,8 @@ import com.hypixel.hytale.server.core.universe.datastore.DiskDataStore
 import net.civhorizons.horizons.Horizons
 import net.civhorizons.horizons.groups.command.GroupsCommand
 import net.civhorizons.horizons.groups.resource.GroupComponent
-import net.civhorizons.horizons.groups.system.GroupPlayerReadyListener
+import net.civhorizons.horizons.groups.event.GroupUsernameRefreshListener
+import net.civhorizons.horizons.groups.event.PendingGroupInviteListener
 import kotlin.io.path.createDirectories
 
 class GroupsModule(val horizons: Horizons) {
@@ -24,8 +25,14 @@ class GroupsModule(val horizons: Horizons) {
         api.load()
         LOGGER.atInfo().log("${api.getGroups().size} groups loaded from disk")
 
-        val playerReadyListener = GroupPlayerReadyListener(api)
-        horizons.eventRegistry.registerGlobal(PlayerReadyEvent::class.java) { playerReadyListener.onPlayerReady(it) }
+        val usernameRefreshListener = GroupUsernameRefreshListener(api)
+        horizons.eventRegistry.registerGlobal(PlayerReadyEvent::class.java) {
+            usernameRefreshListener.onPlayerReady(it)
+        }
+        val pendingInviteListener = PendingGroupInviteListener(api)
+        horizons.eventRegistry.registerGlobal(PlayerReadyEvent::class.java) {
+            pendingInviteListener.onPlayerReady(it)
+        }
 
         horizons.commandRegistry.registerCommand(GroupsCommand(api))
     }

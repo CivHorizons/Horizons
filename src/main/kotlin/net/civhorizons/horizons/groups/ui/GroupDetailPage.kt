@@ -10,8 +10,8 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.Universe
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.groups.GroupResult
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.GroupActionResult
+import net.civhorizons.horizons.groups.groupsTranslation
 import net.civhorizons.horizons.groups.resource.GroupComponent
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Permission
 import net.civhorizons.horizons.groups.toMessage
@@ -34,14 +34,14 @@ class GroupDetailPage(
         store: Store<EntityStore>,
     ) {
         commands.append("Pages/Groups/GroupDetailPage.ui")
-        commands.set("#BackButton.Text", groupsText("ui.common.back"))
+        commands.set("#BackButton.Text", groupsTranslation("ui.common.back"))
         bindAction(events, "#BackButton", BACK)
 
         val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
             commands.set("#Body.Visible", false)
             commands.set("#ManageButtons.Visible", false)
-            status = GroupResult.Error.NOT_FOUND.toMessage()
+            status = GroupActionResult.Error.NOT_FOUND.toMessage()
             return
         }
 
@@ -50,8 +50,8 @@ class GroupDetailPage(
         val canDelete = group.hasPermission(me, Permission.DELETE_GROUP)
         val canManageRoles = group.hasPermission(me, Permission.MANAGE_ROLES)
         commands.set("#PageTitle.Text", group.name)
-        commands.set("#MembersHeader.Text", groupsText("ui.detail.members"))
-        commands.set("#InvitesHeader.Text", groupsText("ui.detail.invites"))
+        commands.set("#MembersHeader.Text", groupsTranslation("ui.detail.members"))
+        commands.set("#InvitesHeader.Text", groupsTranslation("ui.detail.invites"))
 
         buildMembers(group, commands, events)
         buildInvites(group, canInvite, commands, events)
@@ -60,15 +60,15 @@ class GroupDetailPage(
         commands.set("#DeleteButton.Visible", canDelete)
         commands.set("#RolesButton.Visible", canManageRoles)
         if (canManageRoles) {
-            commands.set("#RolesButton.Text", groupsText("ui.detail.roles"))
+            commands.set("#RolesButton.Text", groupsTranslation("ui.detail.roles"))
             bindAction(events, "#RolesButton", ROLES)
         }
         if (canInvite) {
-            commands.set("#InviteButton.Text", groupsText("ui.detail.invite"))
+            commands.set("#InviteButton.Text", groupsTranslation("ui.detail.invite"))
             bindAction(events, "#InviteButton", INVITE)
         }
         if (canDelete) {
-            commands.set("#DeleteButton.Text", groupsText("ui.detail.delete"))
+            commands.set("#DeleteButton.Text", groupsTranslation("ui.detail.delete"))
             bindAction(events, "#DeleteButton", DELETE)
         }
     }
@@ -78,7 +78,7 @@ class GroupDetailPage(
         val canRemove = group.hasPermission(me, Permission.REMOVE_MEMBERS)
         val canAssign = group.hasPermission(me, Permission.ASSIGN_ROLES)
         // Only roles below the viewer can be handed out
-        val roleEntries = group.roles.filter { group.outranks(me, it.uuid) }.map {
+        val roleEntries = group.roles.filter { group.outranksRole(me, it.uuid) }.map {
             DropdownEntryInfo(LocalizableString.fromString(it.name), it.uuid.toString())
         }
         val members = group.membership.keys.sortedBy { group.memberName(it).lowercase() }
@@ -92,7 +92,7 @@ class GroupDetailPage(
 
             commands.append("#MemberList", "Pages/Groups/MemberRow.ui")
             commands.set("$row #Name.Text", group.memberName(member))
-            commands.set("$row #Offline.Text", groupsText("ui.common.offline"))
+            commands.set("$row #Offline.Text", groupsTranslation("ui.common.offline"))
             commands.set("$row #Offline.Visible", Universe.get().getPlayer(member) == null)
             commands.set("$row #Role.Text", role?.name.orEmpty())
             commands.set("$row #Role.Visible", !assignable)
@@ -105,7 +105,7 @@ class GroupDetailPage(
                 bindValueChanged(events, "$row #RoleDropdown", SET_ROLE, member.toString(), "$row #RoleDropdown.Value")
             }
             if (removable) {
-                commands.set("$row #RemoveButton.Text", groupsText("ui.detail.remove"))
+                commands.set("$row #RemoveButton.Text", groupsTranslation("ui.detail.remove"))
                 bindAction(events, "$row #RemoveButton", REMOVE, member.toString())
             }
         }
@@ -125,7 +125,7 @@ class GroupDetailPage(
             val row = "#InviteList[$i]"
             commands.append("#InviteList", "Pages/Groups/PendingInviteRow.ui")
             commands.set("$row #Name.Text", invite.username)
-            commands.set("$row #RevokeButton.Text", groupsText("ui.detail.revoke"))
+            commands.set("$row #RevokeButton.Text", groupsTranslation("ui.detail.revoke"))
             bindAction(events, "$row #RevokeButton", REVOKE, invitee.toString())
         }
     }
@@ -133,7 +133,7 @@ class GroupDetailPage(
     override fun handleEvent(ref: Ref<EntityStore>, store: Store<EntityStore>, data: GroupsPageEvent) {
         val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
-            navigate(ref, store, GroupListPage(playerRef, GroupResult.Error.NOT_FOUND.toMessage()))
+            navigate(ref, store, GroupListPage(playerRef, GroupActionResult.Error.NOT_FOUND.toMessage()))
             return
         }
 
@@ -151,14 +151,14 @@ class GroupDetailPage(
     private fun setRole(group: GroupComponent, target: UUID, roleValue: String?) {
         val roleUuid = roleValue?.let { runCatching { UUID.fromString(it) }.getOrNull() }
         if (roleUuid == null) {
-            refresh(GroupResult.Error.ROLE_NOT_FOUND.toMessage())
+            refresh(GroupActionResult.Error.ROLE_NOT_FOUND.toMessage())
             return
         }
 
         val result = groupsApi.setMemberRole(playerRef, groupUuid, target, roleUuid)
         // Refresh either way so a rejected change snaps the dropdown back
         refresh(result.toMessage {
-            groupsText("ui.detail.rolechanged")
+            groupsTranslation("ui.detail.rolechanged")
                 .param("player", group.memberName(target))
                 .param("role", group.roleOf(target)?.name.orEmpty())
         })
@@ -167,21 +167,22 @@ class GroupDetailPage(
     private fun revokeInvite(group: GroupComponent, target: UUID) {
         val name = group.invites[target]?.username.orEmpty()
         val result = groupsApi.revokeInvite(playerRef, groupUuid, target)
-        refresh(result.toMessage { groupsText("ui.detail.revoked").param("player", name) })
+        refresh(result.toMessage { groupsTranslation("ui.detail.revoked").param("player", name) })
     }
 
     private fun confirmDelete(ref: Ref<EntityStore>, store: Store<EntityStore>, group: GroupComponent) {
         navigate(ref, store, ConfirmPage(
             playerRef,
-            title = groupsText("ui.detail.deleteconfirm.title"),
-            message = groupsText("ui.detail.deleteconfirm.message").param("name", group.name),
+            title = groupsTranslation("ui.detail.deleteconfirm.title"),
+            message = groupsTranslation("ui.detail.deleteconfirm.message").param("name", group.name),
             onConfirm = { r, s ->
                 when (val result = groupsApi.deleteGroup(playerRef, groupUuid)) {
-                    GroupResult.Success -> {
-                        val deleted = groupsText("ui.detail.deleted").param("name", group.name)
+                    GroupActionResult.Success -> {
+                        val deleted = groupsTranslation("ui.detail.deleted").param("name", group.name)
                         navigate(r, s, GroupListPage(playerRef, deleted))
                     }
-                    is GroupResult.Error -> navigate(r, s, GroupDetailPage(playerRef, groupUuid, result.toMessage()))
+                    is GroupActionResult.Error ->
+                        navigate(r, s, GroupDetailPage(playerRef, groupUuid, result.toMessage()))
                 }
             },
             onCancel = { r, s -> navigate(r, s, GroupDetailPage(playerRef, groupUuid)) },
@@ -192,11 +193,13 @@ class GroupDetailPage(
         val name = group.memberName(target)
         navigate(ref, store, ConfirmPage(
             playerRef,
-            title = groupsText("ui.detail.removeconfirm.title"),
-            message = groupsText("ui.detail.removeconfirm.message").param("player", name).param("name", group.name),
+            title = groupsTranslation("ui.detail.removeconfirm.title"),
+            message = groupsTranslation("ui.detail.removeconfirm.message")
+                .param("player", name)
+                .param("name", group.name),
             onConfirm = { r, s ->
                 val result = groupsApi.removeMember(playerRef, groupUuid, target)
-                val status = result.toMessage { groupsText("ui.detail.removed").param("player", name) }
+                val status = result.toMessage { groupsTranslation("ui.detail.removed").param("player", name) }
                 navigate(r, s, GroupDetailPage(playerRef, groupUuid, status))
             },
             onCancel = { r, s -> navigate(r, s, GroupDetailPage(playerRef, groupUuid)) },

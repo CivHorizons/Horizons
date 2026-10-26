@@ -1,14 +1,14 @@
-package net.civhorizons.horizons.groups.system
+package net.civhorizons.horizons.groups.event
 
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import net.civhorizons.horizons.groups.GroupsAPI
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.groupsTranslation
 
 /**
- * When a player finishes joining: keep their stored username current and tell them about pending invites.
+ * Tells a player about their pending group invites when they finish joining.
  */
-class GroupPlayerReadyListener(val groupsApi: GroupsAPI) {
+class PendingGroupInviteListener(val groupsApi: GroupsAPI) {
 
     fun onPlayerReady(event: PlayerReadyEvent) {
         val ref = event.playerRef
@@ -19,11 +19,9 @@ class GroupPlayerReadyListener(val groupsApi: GroupsAPI) {
             if (!ref.isValid) return@execute
             val playerRef = store.getComponent(ref, PlayerRef.getComponentType()) ?: return@execute
 
-            groupsApi.refreshUsername(playerRef)
-
             val invites = groupsApi.getInvitesFor(playerRef)
             if (invites.isNotEmpty()) {
-                playerRef.sendMessage(groupsText("invite.pending").param("count", invites.size))
+                playerRef.sendMessage(groupsTranslation("invite.pending").param("count", invites.size))
             }
         }
     }

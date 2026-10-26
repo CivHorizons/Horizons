@@ -7,7 +7,7 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.groupsTranslation
 
 typealias PageAction = (Ref<EntityStore>, Store<EntityStore>) -> Unit
 
@@ -31,8 +31,8 @@ class ConfirmPage(
         commands.append("Pages/Groups/ConfirmPage.ui")
         commands.set("#PageTitle.Text", title)
         commands.set("#Message.Text", message)
-        commands.set("#ConfirmButton.Text", groupsText("ui.confirm.confirm"))
-        commands.set("#CancelButton.Text", groupsText("ui.common.cancel"))
+        commands.set("#ConfirmButton.Text", groupsTranslation("ui.confirm.confirm"))
+        commands.set("#CancelButton.Text", groupsTranslation("ui.common.cancel"))
 
         bindAction(events, "#ConfirmButton", CONFIRM)
         bindAction(events, "#CancelButton", CANCEL)

@@ -7,7 +7,7 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.groupsTranslation
 import net.civhorizons.horizons.groups.toMessage
 
 /**
@@ -22,11 +22,11 @@ class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsP
         store: Store<EntityStore>,
     ) {
         commands.append("Pages/Groups/GroupListPage.ui")
-        commands.set("#PageTitle.Text", groupsText("ui.list.title"))
-        commands.set("#InvitesHeader.Text", groupsText("ui.list.invites"))
-        commands.set("#GroupsHeader.Text", groupsText("ui.list.groups"))
-        commands.set("#EmptyLabel.Text", groupsText("ui.list.empty"))
-        commands.set("#CreateButton.Text", groupsText("ui.list.create"))
+        commands.set("#PageTitle.Text", groupsTranslation("ui.list.title"))
+        commands.set("#InvitesHeader.Text", groupsTranslation("ui.list.invites"))
+        commands.set("#GroupsHeader.Text", groupsTranslation("ui.list.groups"))
+        commands.set("#EmptyLabel.Text", groupsTranslation("ui.list.empty"))
+        commands.set("#CreateButton.Text", groupsTranslation("ui.list.create"))
         bindAction(events, "#CreateButton", CREATE)
 
         buildInvites(commands, events)
@@ -43,9 +43,9 @@ class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsP
             commands.append("#InviteList", "Pages/Groups/IncomingInviteRow.ui")
             commands.set("$row #Name.Text", group.name)
             val inviter = group.memberName(invite.inviter)
-            commands.set("$row #Detail.Text", groupsText("ui.list.inviterow").param("inviter", inviter))
-            commands.set("$row #AcceptButton.Text", groupsText("ui.list.accept"))
-            commands.set("$row #DeclineButton.Text", groupsText("ui.list.decline"))
+            commands.set("$row #Detail.Text", groupsTranslation("ui.list.inviterow").param("inviter", inviter))
+            commands.set("$row #AcceptButton.Text", groupsTranslation("ui.list.accept"))
+            commands.set("$row #DeclineButton.Text", groupsTranslation("ui.list.decline"))
             bindAction(events, "$row #AcceptButton", ACCEPT, group.uuid.toString())
             bindAction(events, "$row #DeclineButton", DECLINE, group.uuid.toString())
         }
@@ -61,7 +61,7 @@ class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsP
             commands.set("$row #Name.Text", group.name)
             commands.set(
                 "$row #Detail.Text",
-                groupsText("ui.list.row")
+                groupsTranslation("ui.list.row")
                     .param("role", group.roleOf(playerRef.uuid)?.name.orEmpty())
                     .param("count", group.membership.size)
             )
@@ -76,12 +76,12 @@ class GroupListPage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsP
             ACCEPT -> data.targetUuid()?.let { groupUuid ->
                 val name = groupsApi.getGroup(groupUuid)?.name.orEmpty()
                 val result = groupsApi.acceptInvite(playerRef, groupUuid)
-                refresh(result.toMessage { groupsText("ui.list.accepted").param("name", name) })
+                refresh(result.toMessage { groupsTranslation("ui.list.accepted").param("name", name) })
             }
             DECLINE -> data.targetUuid()?.let { groupUuid ->
                 val name = groupsApi.getGroup(groupUuid)?.name.orEmpty()
                 val result = groupsApi.declineInvite(playerRef, groupUuid)
-                refresh(result.toMessage { groupsText("ui.list.declined").param("name", name) })
+                refresh(result.toMessage { groupsTranslation("ui.list.declined").param("name", name) })
             }
         }
     }

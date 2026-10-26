@@ -7,8 +7,8 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.groups.GroupResult
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.GroupActionResult
+import net.civhorizons.horizons.groups.groupsTranslation
 import net.civhorizons.horizons.groups.toMessage
 
 class GroupCreatePage(playerRef: PlayerRef, status: Message? = null) : BaseGroupsPage(playerRef, status) {
@@ -20,10 +20,10 @@ class GroupCreatePage(playerRef: PlayerRef, status: Message? = null) : BaseGroup
         store: Store<EntityStore>,
     ) {
         commands.append("Pages/Groups/GroupCreatePage.ui")
-        commands.set("#PageTitle.Text", groupsText("ui.create.title"))
-        commands.set("#NameInput.PlaceholderText", groupsText("ui.create.name"))
-        commands.set("#CreateButton.Text", groupsText("ui.create.submit"))
-        commands.set("#CancelButton.Text", groupsText("ui.common.cancel"))
+        commands.set("#PageTitle.Text", groupsTranslation("ui.create.title"))
+        commands.set("#NameInput.PlaceholderText", groupsTranslation("ui.create.name"))
+        commands.set("#CreateButton.Text", groupsTranslation("ui.create.submit"))
+        commands.set("#CancelButton.Text", groupsTranslation("ui.common.cancel"))
 
         bindAction(events, "#CreateButton", CREATE, capture = "#NameInput.Value")
         bindAction(events, "#CancelButton", CANCEL)
@@ -34,10 +34,10 @@ class GroupCreatePage(playerRef: PlayerRef, status: Message? = null) : BaseGroup
             CREATE -> {
                 val group = groupsApi.createNewGroup(playerRef, data.value.orEmpty())
                 if (group == null) {
-                    showStatus(GroupResult.Error.INVALID_NAME.toMessage())
+                    showStatus(GroupActionResult.Error.INVALID_NAME.toMessage())
                     return
                 }
-                val created = groupsText("ui.create.success").param("name", group.name)
+                val created = groupsTranslation("ui.create.success").param("name", group.name)
                 navigate(ref, store, GroupDetailPage(playerRef, group.uuid, created))
             }
             CANCEL -> navigate(ref, store, GroupListPage(playerRef))

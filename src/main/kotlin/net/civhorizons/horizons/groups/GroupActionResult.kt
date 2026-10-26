@@ -3,10 +3,10 @@ package net.civhorizons.horizons.groups
 /**
  * Outcome of a group operation. Errors carry the translation key shown to the player.
  */
-sealed interface GroupResult {
-    data object Success : GroupResult
+sealed interface GroupActionResult {
+    data object Success : GroupActionResult
 
-    enum class Error(val translationKey: String) : GroupResult {
+    enum class Error(val translationKey: String) : GroupActionResult {
         NOT_FOUND("horizons-groups.error.notfound"),
         NO_PERMISSION("horizons-groups.error.nopermission"),
         ALREADY_MEMBER("horizons-groups.error.alreadymember"),

@@ -7,8 +7,8 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import net.civhorizons.horizons.groups.GroupResult
-import net.civhorizons.horizons.groups.groupsText
+import net.civhorizons.horizons.groups.GroupActionResult
+import net.civhorizons.horizons.groups.groupsTranslation
 import net.civhorizons.horizons.groups.resource.GroupComponent
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Kind
 import net.civhorizons.horizons.groups.resource.GroupComponent.GroupRole.Permission
@@ -33,23 +33,23 @@ class GroupRolesPage(
         store: Store<EntityStore>,
     ) {
         commands.append("Pages/Groups/GroupRolesPage.ui")
-        commands.set("#PageTitle.Text", groupsText("ui.roles.title"))
-        commands.set("#BackButton.Text", groupsText("ui.common.back"))
+        commands.set("#PageTitle.Text", groupsTranslation("ui.roles.title"))
+        commands.set("#BackButton.Text", groupsTranslation("ui.common.back"))
         bindAction(events, "#BackButton", BACK)
 
         val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
             commands.set("#RoleList.Visible", false)
             commands.set("#CreateSection.Visible", false)
-            status = GroupResult.Error.NOT_FOUND.toMessage()
+            status = GroupActionResult.Error.NOT_FOUND.toMessage()
             return
         }
 
         val canManage = group.hasPermission(playerRef.uuid, Permission.MANAGE_ROLES)
         commands.set("#CreateSection.Visible", canManage)
         if (canManage) {
-            commands.set("#NameInput.PlaceholderText", groupsText("ui.roles.name"))
-            commands.set("#CreateButton.Text", groupsText("ui.roles.create"))
+            commands.set("#NameInput.PlaceholderText", groupsTranslation("ui.roles.name"))
+            commands.set("#CreateButton.Text", groupsTranslation("ui.roles.create"))
             bindAction(events, "#CreateButton", CREATE, capture = "#NameInput.Value")
         }
 
@@ -67,14 +67,14 @@ class GroupRolesPage(
             fun button(name: String, textKey: String, action: String, visible: Boolean) {
                 commands.set("$row #$name.Visible", visible)
                 if (!visible) return
-                commands.set("$row #$name.Text", groupsText(textKey))
+                commands.set("$row #$name.Text", groupsTranslation(textKey))
                 bindAction(events, "$row #$name", action, id)
             }
 
             commands.append("#RoleList", "Pages/Groups/RoleRow.ui")
             commands.set("$row #Name.Text", role.name)
             val count = group.membersWithRole(role.uuid)
-            commands.set("$row #Detail.Text", groupsText("ui.roles.members").param("count", count))
+            commands.set("$row #Detail.Text", groupsTranslation("ui.roles.members").param("count", count))
             button("UpButton", "ui.roles.up", MOVE_UP, group.canMoveRole(me, role.uuid, up = true))
             button("DownButton", "ui.roles.down", MOVE_DOWN, group.canMoveRole(me, role.uuid, up = false))
             button("EditButton", "ui.roles.edit", EDIT, editable)
@@ -85,7 +85,7 @@ class GroupRolesPage(
     override fun handleEvent(ref: Ref<EntityStore>, store: Store<EntityStore>, data: GroupsPageEvent) {
         val group = groupsApi.getMemberGroup(playerRef, groupUuid)
         if (group == null) {
-            navigate(ref, store, GroupListPage(playerRef, GroupResult.Error.NOT_FOUND.toMessage()))
+            navigate(ref, store, GroupListPage(playerRef, GroupActionResult.Error.NOT_FOUND.toMessage()))
             return
         }
 
@@ -101,33 +101,33 @@ class GroupRolesPage(
 
     private fun createRole(name: String) {
         val result = groupsApi.createRole(playerRef, groupUuid, name)
-        refresh(result.toMessage { groupsText("ui.roles.created").param("role", name.trim()) })
+        refresh(result.toMessage { groupsTranslation("ui.roles.created").param("role", name.trim()) })
     }
 
     private fun moveRole(role: UUID, up: Boolean) {
         val result = groupsApi.moveRole(playerRef, groupUuid, role, up)
         // The new order speaks for itself, so only errors get a status line
-        refresh((result as? GroupResult.Error)?.toMessage())
+        refresh((result as? GroupActionResult.Error)?.toMessage())
     }
 
     private fun confirmDelete(ref: Ref<EntityStore>, store: Store<EntityStore>, group: GroupComponent, role: UUID) {
         val target = group.findRole(role)
         if (target == null) {
-            refresh(GroupResult.Error.ROLE_NOT_FOUND.toMessage())
+            refresh(GroupActionResult.Error.ROLE_NOT_FOUND.toMessage())
             return
         }
 
-        val fallback = group.roleOfKind(Kind.MEMBER)?.name.orEmpty()
+        val fallback = group.memberRole()?.name.orEmpty()
         navigate(ref, store, ConfirmPage(
             playerRef,
-            title = groupsText("ui.roles.deleteconfirm.title"),
-            message = groupsText("ui.roles.deleteconfirm.message")
+            title = groupsTranslation("ui.roles.deleteconfirm.title"),
+            message = groupsTranslation("ui.roles.deleteconfirm.message")
                 .param("role", target.name)
                 .param("count", group.membersWithRole(role))
                 .param("member", fallback),
             onConfirm = { r, s ->
                 val result = groupsApi.deleteRole(playerRef, groupUuid, role)
-                val status = result.toMessage { groupsText("ui.roles.deleted").param("role", target.name) }
+                val status = result.toMessage { groupsTranslation("ui.roles.deleted").param("role", target.name) }
                 navigate(r, s, GroupRolesPage(playerRef, groupUuid, status))
             },
             onCancel = { r, s -> navigate(r, s, GroupRolesPage(playerRef, groupUuid)) },
