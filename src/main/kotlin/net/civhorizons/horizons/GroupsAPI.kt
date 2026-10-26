@@ -68,27 +68,7 @@ class GroupsAPI(val storage: GroupDataStore) {
      * Two roles, Owner and Member.
      */
     fun createNewGroup(store: Store<EntityStore>, playerRef: PlayerRef, name: String): GroupsResource.GroupComponent {
-        val ownerRoleUUID = UUID.randomUUID()
-
-        val group = GroupsResource.GroupComponent(
-            name = name,
-            // Create two basic roles, Owner and Member
-            roles = arrayOf(GroupsResource.GroupComponent.GroupRole(
-                uuid = ownerRoleUUID,
-                name = "Owner",
-                permissions = mapOf(GroupsResource.GroupComponent.GroupRole.Permission.MANAGE_GROUP to true)
-            ), GroupsResource.GroupComponent.GroupRole(
-                name = "Member",
-                permissions = mapOf()
-            )),
-            // Assign the creator as the owner
-            membership = mutableMapOf(
-                playerRef.uuid to GroupsResource.GroupComponent.GroupMembershipData(
-                    roles = setOf(ownerRoleUUID)
-                )
-            )
-        )
-
+        val group = GroupsResource.GroupComponent.createDefault(name, playerRef.uuid, playerRef.username)
         return createOrUpdateGroup(store, group)
     }
 

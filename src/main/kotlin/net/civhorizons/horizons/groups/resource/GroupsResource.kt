@@ -28,7 +28,8 @@ class GroupsResource(
         var uuid: UUID = UUID.randomUUID(),
         var name: String = "",
         var roles: Array<GroupRole> = arrayOf(),
-        var membership: MutableMap<UUID, GroupMembershipData> = mutableMapOf()
+        var membership: MutableMap<UUID, GroupMembershipData> = mutableMapOf(),
+        var invites: MutableMap<UUID, GroupInviteData> = mutableMapOf(),
     ) {
 
         /**
@@ -58,7 +59,29 @@ class GroupsResource(
         }
 
         companion object {
+            const val DEFAULT_OWNER_ROLE = "Owner"
+            const val DEFAULT_MEMBER_ROLE = "Member"
+
             fun getType() = Horizons.instance.groupsModule.groupsResourceType
+
+            /**
+             * Create a group with the default roles, Owner and Member, and the creator as Owner.
+             */
+            fun createDefault(name: String, creator: UUID, creatorName: String): GroupComponent {
+                val ownerRole = GroupRole(
+                    name = DEFAULT_OWNER_ROLE,
+                    permissions = mapOf(GroupRole.Permission.MANAGE_GROUP to true)
+                )
+                val memberRole = GroupRole(name = DEFAULT_MEMBER_ROLE, permissions = mapOf())
+
+                return GroupComponent(
+                    name = name,
+                    roles = arrayOf(ownerRole, memberRole),
+                    membership = mutableMapOf(
+                        creator to GroupMembershipData(roles = setOf(ownerRole.uuid), username = creatorName)
+                    )
+                )
+            }
 
             val CODEC = BuilderCodec.builder(GroupComponent::class.java, ::GroupComponent)
                 .append(KeyedCodec("UUID", Codec.UUID_BINARY),
@@ -77,11 +100,16 @@ class GroupsResource(
                 { group, membership -> group.membership = membership.map { Pair(UUID.fromString(it.key), it.value) }.toMap().toMutableMap() },
                     { it -> it.membership.map { Pair(it.key.toString(), it.value) }.toMap() }
                 ).add()
+                .append(KeyedCodec("Invites", MapCodec(GroupInviteData.CODEC, ::ConcurrentHashMap)),
+                    { group, invites -> group.invites = invites.mapKeys { UUID.fromString(it.key) }.toMutableMap() },
+                    { group -> group.invites.mapKeys { it.key.toString() } }
+                ).add()
                 .build()
         }
 
         data class GroupMembershipData(
             var roles: Set<UUID> = setOf(),
+            var username: String = "",
         ) {
             companion object {
                 val CODEC = BuilderCodec.builder(GroupMembershipData::class.java, ::GroupMembershipData)
@@ -89,7 +117,29 @@ class GroupsResource(
                         { data, roles -> data.roles = roles},
                         { it.roles }
                     ).add()
+                    .append(KeyedCodec("Username", Codec.STRING),
+                        { data, username -> data.username = username },
+                        { it.username }
+                    ).add()
                 .build()
+            }
+        }
+
+        data class GroupInviteData(
+            var inviter: UUID = UUID(0, 0),
+            var username: String = "",
+        ) {
+            companion object {
+                val CODEC = BuilderCodec.builder(GroupInviteData::class.java, ::GroupInviteData)
+                    .append(KeyedCodec("Inviter", Codec.UUID_STRING),
+                        { data, inviter -> data.inviter = inviter },
+                        { it.inviter }
+                    ).add()
+                    .append(KeyedCodec("Username", Codec.STRING),
+                        { data, username -> data.username = username },
+                        { it.username }
+                    ).add()
+                    .build()
             }
         }
 

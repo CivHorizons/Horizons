@@ -1,0 +1,21 @@
+package net.civhorizons.horizons.groups
+
+/**
+ * Outcome of a group operation. Errors carry the translation key shown to the player.
+ */
+sealed interface GroupResult {
+    data object Success : GroupResult
+
+    enum class Error(val translationKey: String) : GroupResult {
+        NOT_FOUND("horizons-groups.error.notfound"),
+        NO_PERMISSION("horizons-groups.error.nopermission"),
+        ALREADY_MEMBER("horizons-groups.error.alreadymember"),
+        ALREADY_INVITED("horizons-groups.error.alreadyinvited"),
+        NOT_INVITED("horizons-groups.error.notinvited"),
+        NOT_MEMBER("horizons-groups.error.notmember"),
+        LAST_OWNER("horizons-groups.error.lastowner"),
+        ROLE_NOT_FOUND("horizons-groups.error.rolenotfound"),
+        INVALID_NAME("horizons-groups.error.invalidname"),
+        PLAYER_OFFLINE("horizons-groups.error.playeroffline"),
+    }
+}
