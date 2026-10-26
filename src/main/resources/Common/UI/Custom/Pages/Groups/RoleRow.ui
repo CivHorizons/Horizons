@@ -24,6 +24,11 @@ Group {
     @Anchor = (Right: 4);
   }
 
+  $C.@SmallSecondaryTextButton #EditButton {
+    @Text = "";
+    @Anchor = (Right: 4);
+  }
+
   $C.@CancelTextButton #DeleteButton {
     @Text = "";
   }

@@ -1,0 +1,66 @@
+$C = "../../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 600, Height: 650);
+
+  #Title {
+    Group {
+      $C.@Title #PageTitle {}
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Label #Status {
+      Anchor: (Bottom: 8);
+      Style: (TextColor: #ffcc66, Wrap: true);
+    }
+
+    Group #Body {
+      LayoutMode: Top;
+      FlexWeight: 1;
+
+      Group #RenameSection {
+        LayoutMode: Left;
+        Anchor: (Bottom: 12);
+
+        $C.@TextField #NameInput {
+          @Anchor = (Right: 6);
+          FlexWeight: 1;
+        }
+
+        $C.@TextButton #RenameButton {
+          @Text = "";
+        }
+      }
+
+      Label #PermissionsHeader {
+        Style: (RenderBold: true);
+        Anchor: (Bottom: 4);
+      }
+
+      Label #OwnerNote {
+        Style: (TextColor: #ffffff(0.5), RenderItalics: true, Wrap: true);
+        Anchor: (Bottom: 4);
+      }
+
+      Group #PermissionList {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      }
+    }
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Top: 8);
+
+      $C.@SecondaryTextButton #BackButton {
+        @Text = "";
+      }
+    }
+  }
+}

@@ -77,6 +77,7 @@ class GroupRolesPage(
             commands.set("$row #Detail.Text", groupsText("ui.roles.members").param("count", count))
             button("UpButton", "ui.roles.up", MOVE_UP, group.canMoveRole(me, role.uuid, up = true))
             button("DownButton", "ui.roles.down", MOVE_DOWN, group.canMoveRole(me, role.uuid, up = false))
+            button("EditButton", "ui.roles.edit", EDIT, editable)
             button("DeleteButton", "ui.roles.delete", DELETE, editable && role.kind == Kind.CUSTOM)
         }
     }
@@ -93,6 +94,7 @@ class GroupRolesPage(
             CREATE -> createRole(store, data.value.orEmpty())
             MOVE_UP -> data.targetUuid()?.let { moveRole(store, it, up = true) }
             MOVE_DOWN -> data.targetUuid()?.let { moveRole(store, it, up = false) }
+            EDIT -> data.targetUuid()?.let { navigate(ref, store, GroupRoleEditPage(playerRef, groupUuid, it)) }
             DELETE -> data.targetUuid()?.let { confirmDelete(ref, store, group, it) }
         }
     }
@@ -137,6 +139,7 @@ class GroupRolesPage(
         const val CREATE = "Create"
         const val MOVE_UP = "MoveUp"
         const val MOVE_DOWN = "MoveDown"
+        const val EDIT = "Edit"
         const val DELETE = "Delete"
     }
 }

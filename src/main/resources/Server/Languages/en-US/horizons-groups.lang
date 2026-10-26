@@ -64,6 +64,24 @@ ui.roles.deleted=Deleted role "{role}".
 ui.roles.deleteconfirm.title=Delete Role
 ui.roles.deleteconfirm.message=Delete the role "{role}"? Its {count} members will become {member}.
 
+ui.roles.edit=Edit
+ui.roleedit.name=Role name
+ui.roleedit.rename=Rename
+ui.roleedit.renamed=Renamed the role to "{role}".
+ui.roleedit.permissions=Permissions
+ui.roleedit.ownernote=Owners always have every permission.
+
+permission.invitemembers.name=Invite Members
+permission.invitemembers.description=Send and revoke invites.
+permission.removemembers.name=Remove Members
+permission.removemembers.description=Remove members with a lower role.
+permission.assignroles.name=Assign Roles
+permission.assignroles.description=Give members a lower role than your own.
+permission.manageroles.name=Manage Roles
+permission.manageroles.description=Create, rename, reorder, and delete lower roles, and change their permissions.
+permission.deletegroup.name=Delete Group
+permission.deletegroup.description=Permanently delete the group.
+
 ui.invite.title=Invite Player
 ui.invite.search=Search players
 ui.invite.empty=No online players can be invited.

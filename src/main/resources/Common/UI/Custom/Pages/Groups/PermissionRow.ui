@@ -1,0 +1,22 @@
+$C = "../../Common.ui";
+
+Group {
+  LayoutMode: Left;
+  Padding: (Full: 6);
+
+  $C.@CheckBox #CheckBox {}
+
+  Group {
+    LayoutMode: Top;
+    FlexWeight: 1;
+    Anchor: (Left: 11);
+
+    Label #Name {
+      Style: (RenderBold: true);
+    }
+
+    Label #Description {
+      Style: (TextColor: #ffffff(0.6), Wrap: true);
+    }
+  }
+}
