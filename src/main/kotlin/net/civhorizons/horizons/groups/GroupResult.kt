@@ -13,7 +13,6 @@ sealed interface GroupResult {
         ALREADY_INVITED("horizons-groups.error.alreadyinvited"),
         NOT_INVITED("horizons-groups.error.notinvited"),
         NOT_MEMBER("horizons-groups.error.notmember"),
-        LAST_OWNER("horizons-groups.error.lastowner"),
         ROLE_NOT_FOUND("horizons-groups.error.rolenotfound"),
         INVALID_NAME("horizons-groups.error.invalidname"),
         PLAYER_OFFLINE("horizons-groups.error.playeroffline"),

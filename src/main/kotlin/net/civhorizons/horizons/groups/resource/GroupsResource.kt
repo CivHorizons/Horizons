@@ -3,6 +3,7 @@ package net.civhorizons.horizons.groups.resource
 import com.hypixel.hytale.codec.Codec
 import com.hypixel.hytale.codec.KeyedCodec
 import com.hypixel.hytale.codec.builder.BuilderCodec
+import com.hypixel.hytale.codec.codecs.EnumCodec
 import com.hypixel.hytale.codec.codecs.array.ArrayCodec
 import com.hypixel.hytale.codec.codecs.map.EnumMapCodec
 import com.hypixel.hytale.codec.codecs.map.MapCodec
@@ -36,11 +37,11 @@ class GroupsResource(
     ) {
 
         /**
-         * Return true if _any_ of the player's roles grants the permission
+         * Return true if the player's role grants the permission. Owners hold every permission.
          */
         fun hasPermission(player: UUID, permission: GroupRole.Permission): Boolean {
-            val activeRoleUUIDs = membership[player]?.roles ?: return false
-            return roles.any { activeRoleUUIDs.contains(it.uuid) && it.permissions[permission] == true }
+            val role = roleOf(player) ?: return false
+            return role.kind == GroupRole.Kind.OWNER || role.permissions[permission] == true
         }
 
         fun playerHasPermission(player: PlayerRef, permission: GroupRole.Permission): Boolean =
@@ -61,6 +62,37 @@ class GroupsResource(
             return roles.firstOrNull { roleUUIDs.contains(it.uuid) }
         }
 
+        fun findRole(role: UUID): GroupRole? = roles.find { it.uuid == role }
+
+        fun roleOfKind(kind: GroupRole.Kind): GroupRole? = roles.find { it.kind == kind }
+
+        /**
+         * Position in the role order, 0 being the highest. -1 if the role doesn't exist.
+         */
+        fun rankOf(role: UUID): Int = roles.indexOfFirst { it.uuid == role }
+
+        /**
+         * True if [actor] may act on [role]: Owners outrank every role, everyone else only the roles below their own.
+         */
+        fun outranks(actor: UUID, role: UUID): Boolean {
+            val actorRole = roleOf(actor) ?: return false
+            if (actorRole.kind == GroupRole.Kind.OWNER) return true
+            val target = rankOf(role)
+            return target >= 0 && rankOf(actorRole.uuid) < target
+        }
+
+        /**
+         * True if [actor] may act on [member]. Nobody acts on themselves, and since only an Owner outranks
+         * an Owner, a group can never lose its last Owner.
+         */
+        fun outranksMember(actor: UUID, member: UUID): Boolean {
+            if (actor == member) return false
+            val role = roleOf(member) ?: return false
+            return outranks(actor, role.uuid)
+        }
+
+        fun membersWithRole(role: UUID): Int = membership.values.count { it.roles.contains(role) }
+
         /**
          * Display name for a member: stored username, then online username, then UUID.
          */
@@ -70,7 +102,7 @@ class GroupsResource(
                 ?: member.toString()
 
         fun invite(actor: UUID, target: UUID, username: String): GroupResult {
-            if (!canManage(actor)) return GroupResult.Error.NO_PERMISSION
+            if (!hasPermission(actor, GroupRole.Permission.INVITE_MEMBERS)) return GroupResult.Error.NO_PERMISSION
             if (isMember(target)) return GroupResult.Error.ALREADY_MEMBER
             if (invites.containsKey(target)) return GroupResult.Error.ALREADY_INVITED
 
@@ -80,7 +112,7 @@ class GroupsResource(
 
         fun acceptInvite(player: UUID, username: String): GroupResult {
             if (!invites.containsKey(player)) return GroupResult.Error.NOT_INVITED
-            val memberRole = roles.find { it.name == DEFAULT_MEMBER_ROLE } ?: return GroupResult.Error.ROLE_NOT_FOUND
+            val memberRole = roleOfKind(GroupRole.Kind.MEMBER) ?: return GroupResult.Error.ROLE_NOT_FOUND
 
             invites.remove(player)
             membership[player] = GroupMembershipData(roles = setOf(memberRole.uuid), username = username)
@@ -91,63 +123,69 @@ class GroupsResource(
             if (invites.remove(player) == null) GroupResult.Error.NOT_INVITED else GroupResult.Success
 
         fun revokeInvite(actor: UUID, target: UUID): GroupResult {
-            if (!canManage(actor)) return GroupResult.Error.NO_PERMISSION
+            if (!hasPermission(actor, GroupRole.Permission.INVITE_MEMBERS)) return GroupResult.Error.NO_PERMISSION
             return if (invites.remove(target) == null) GroupResult.Error.NOT_INVITED else GroupResult.Success
         }
 
         fun removeMember(actor: UUID, target: UUID): GroupResult {
-            if (!canManage(actor)) return GroupResult.Error.NO_PERMISSION
+            if (!hasPermission(actor, GroupRole.Permission.REMOVE_MEMBERS)) return GroupResult.Error.NO_PERMISSION
             if (!isMember(target)) return GroupResult.Error.NOT_MEMBER
-            if (isLastOwner(target)) return GroupResult.Error.LAST_OWNER
+            if (!outranksMember(actor, target)) return GroupResult.Error.NO_PERMISSION
 
             membership.remove(target)
             return GroupResult.Success
         }
 
         fun setRole(actor: UUID, target: UUID, role: UUID): GroupResult {
-            if (!canManage(actor)) return GroupResult.Error.NO_PERMISSION
+            if (!hasPermission(actor, GroupRole.Permission.ASSIGN_ROLES)) return GroupResult.Error.NO_PERMISSION
             val current = membership[target] ?: return GroupResult.Error.NOT_MEMBER
-            val newRole = roles.find { it.uuid == role } ?: return GroupResult.Error.ROLE_NOT_FOUND
-            val keepsOwnership = newRole.permissions[GroupRole.Permission.MANAGE_GROUP] == true
-            if (!keepsOwnership && isLastOwner(target)) return GroupResult.Error.LAST_OWNER
+            val newRole = findRole(role) ?: return GroupResult.Error.ROLE_NOT_FOUND
+            // Both ends must be below the actor, so nobody can promote anyone to or above their own rank
+            if (!outranksMember(actor, target) || !outranks(actor, newRole.uuid)) return GroupResult.Error.NO_PERMISSION
 
             membership[target] = current.copy(roles = setOf(newRole.uuid))
             return GroupResult.Success
         }
 
         fun canDelete(actor: UUID): GroupResult =
-            if (canManage(actor)) GroupResult.Success else GroupResult.Error.NO_PERMISSION
-
-        private fun canManage(player: UUID) = hasPermission(player, GroupRole.Permission.MANAGE_GROUP)
-
-        private fun isLastOwner(player: UUID) =
-            canManage(player) && membership.keys.count { canManage(it) } <= 1
+            if (hasPermission(actor, GroupRole.Permission.DELETE_GROUP)) GroupResult.Success
+            else GroupResult.Error.NO_PERMISSION
 
         companion object {
             const val DEFAULT_OWNER_ROLE = "Owner"
+            const val DEFAULT_ADMIN_ROLE = "Admin"
             const val DEFAULT_MEMBER_ROLE = "Member"
             const val MAX_NAME_LENGTH = 32
 
             /**
-             * Returns the trimmed name if it is a valid group name, or null.
+             * Returns the trimmed name if it is a valid group or role name, or null.
              */
             fun validateName(raw: String): String? = raw.trim().takeIf { it.length in 1..MAX_NAME_LENGTH }
 
             fun getType() = Horizons.instance.groupsModule.groupsResourceType
 
             /**
-             * Create a group with the default roles, Owner and Member, and the creator as Owner.
+             * Create a group with the default roles, Owner, Admin, and Member, and the creator as Owner.
              */
             fun createDefault(name: String, creator: UUID, creatorName: String): GroupComponent {
                 val ownerRole = GroupRole(
                     name = DEFAULT_OWNER_ROLE,
-                    permissions = mapOf(GroupRole.Permission.MANAGE_GROUP to true)
+                    permissions = GroupRole.Permission.entries.associateWith { true },
+                    kind = GroupRole.Kind.OWNER,
                 )
-                val memberRole = GroupRole(name = DEFAULT_MEMBER_ROLE, permissions = mapOf())
+                val adminRole = GroupRole(
+                    name = DEFAULT_ADMIN_ROLE,
+                    permissions = mapOf(
+                        GroupRole.Permission.INVITE_MEMBERS to true,
+                        GroupRole.Permission.REMOVE_MEMBERS to true,
+                        GroupRole.Permission.ASSIGN_ROLES to true,
+                    ),
+                )
+                val memberRole = GroupRole(name = DEFAULT_MEMBER_ROLE, kind = GroupRole.Kind.MEMBER)
 
                 return GroupComponent(
                     name = name,
-                    roles = arrayOf(ownerRole, memberRole),
+                    roles = arrayOf(ownerRole, adminRole, memberRole),
                     membership = mutableMapOf(
                         creator to GroupMembershipData(roles = setOf(ownerRole.uuid), username = creatorName)
                     )
@@ -218,6 +256,7 @@ class GroupsResource(
             var uuid: UUID = UUID.randomUUID(),
             var name: String = "",
             var permissions: Map<Permission, Boolean> = EnumMap(Permission::class.java),
+            var kind: Kind = Kind.CUSTOM,
         ) {
             companion object {
 
@@ -234,15 +273,32 @@ class GroupsResource(
                         { role, permissions -> role.permissions = permissions },
                         { it.permissions }
                     ).add()
+                    .append(KeyedCodec("Kind", EnumCodec(Kind::class.java)),
+                        { role, kind -> role.kind = kind },
+                        { it.kind }
+                    ).add()
                     .build()
 
                 // ArrayCodec fills the array by index, so it must be allocated at the requested size
                 val CODEC_ARRAY = ArrayCodec<GroupRole>(CODEC) { size -> Array(size) { GroupRole() } }
             }
 
+            /**
+             * Owner and Member are protected: they always exist, Owner first and Member last.
+             */
+            enum class Kind {
+                OWNER,
+                MEMBER,
+                CUSTOM,
+            }
+
             // TODO: Create some sort of permission registry
             enum class Permission {
-                MANAGE_GROUP
+                INVITE_MEMBERS,
+                REMOVE_MEMBERS,
+                ASSIGN_ROLES,
+                MANAGE_ROLES,
+                DELETE_GROUP,
             }
         }
     }

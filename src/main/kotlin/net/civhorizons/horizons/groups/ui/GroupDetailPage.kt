@@ -19,7 +19,7 @@ import java.util.UUID
 
 /**
  * One group: members and their roles, pending invites, and management actions.
- * Management controls are only shown to members with MANAGE_GROUP; the API re-checks on every action.
+ * Each control is only shown to members whose role allows it; the API re-checks on every action.
  */
 class GroupDetailPage(
     playerRef: PlayerRef,
@@ -45,30 +45,34 @@ class GroupDetailPage(
             return
         }
 
-        val canManage = group.hasPermission(playerRef.uuid, Permission.MANAGE_GROUP)
+        val me = playerRef.uuid
+        val canInvite = group.hasPermission(me, Permission.INVITE_MEMBERS)
+        val canDelete = group.hasPermission(me, Permission.DELETE_GROUP)
         commands.set("#PageTitle.Text", group.name)
         commands.set("#MembersHeader.Text", groupsText("ui.detail.members"))
         commands.set("#InvitesHeader.Text", groupsText("ui.detail.invites"))
 
-        buildMembers(group, canManage, commands, events)
-        buildInvites(group, canManage, commands, events)
+        buildMembers(group, commands, events)
+        buildInvites(group, canInvite, commands, events)
 
-        commands.set("#ManageButtons.Visible", canManage)
-        if (canManage) {
+        commands.set("#InviteButton.Visible", canInvite)
+        commands.set("#DeleteButton.Visible", canDelete)
+        if (canInvite) {
             commands.set("#InviteButton.Text", groupsText("ui.detail.invite"))
-            commands.set("#DeleteButton.Text", groupsText("ui.detail.delete"))
             bindAction(events, "#InviteButton", INVITE)
+        }
+        if (canDelete) {
+            commands.set("#DeleteButton.Text", groupsText("ui.detail.delete"))
             bindAction(events, "#DeleteButton", DELETE)
         }
     }
 
-    private fun buildMembers(
-        group: GroupComponent,
-        canManage: Boolean,
-        commands: UICommandBuilder,
-        events: UIEventBuilder,
-    ) {
-        val roleEntries = group.roles.map {
+    private fun buildMembers(group: GroupComponent, commands: UICommandBuilder, events: UIEventBuilder) {
+        val me = playerRef.uuid
+        val canRemove = group.hasPermission(me, Permission.REMOVE_MEMBERS)
+        val canAssign = group.hasPermission(me, Permission.ASSIGN_ROLES)
+        // Only roles below the viewer can be handed out
+        val roleEntries = group.roles.filter { group.outranks(me, it.uuid) }.map {
             DropdownEntryInfo(LocalizableString.fromString(it.name), it.uuid.toString())
         }
         val members = group.membership.keys.sortedBy { group.memberName(it).lowercase() }
@@ -76,23 +80,26 @@ class GroupDetailPage(
         members.forEachIndexed { i, member ->
             val row = "#MemberList[$i]"
             val role = group.roleOf(member)
-            // Managers edit everyone but themselves, so they can't lock themselves out by accident
-            val editable = canManage && member != playerRef.uuid
+            val outranked = group.outranksMember(me, member)
+            val assignable = canAssign && outranked
+            val removable = canRemove && outranked
 
             commands.append("#MemberList", "Pages/Groups/MemberRow.ui")
             commands.set("$row #Name.Text", group.memberName(member))
             commands.set("$row #Offline.Text", groupsText("ui.common.offline"))
             commands.set("$row #Offline.Visible", Universe.get().getPlayer(member) == null)
             commands.set("$row #Role.Text", role?.name.orEmpty())
-            commands.set("$row #Role.Visible", !editable)
-            commands.set("$row #RoleDropdown.Visible", editable)
-            commands.set("$row #RemoveButton.Visible", editable)
+            commands.set("$row #Role.Visible", !assignable)
+            commands.set("$row #RoleDropdown.Visible", assignable)
+            commands.set("$row #RemoveButton.Visible", removable)
 
-            if (editable) {
+            if (assignable) {
                 commands.set("$row #RoleDropdown.Entries", roleEntries)
                 role?.let { commands.set("$row #RoleDropdown.Value", it.uuid.toString()) }
-                commands.set("$row #RemoveButton.Text", groupsText("ui.detail.remove"))
                 bindValueChanged(events, "$row #RoleDropdown", SET_ROLE, member.toString(), "$row #RoleDropdown.Value")
+            }
+            if (removable) {
+                commands.set("$row #RemoveButton.Text", groupsText("ui.detail.remove"))
                 bindAction(events, "$row #RemoveButton", REMOVE, member.toString())
             }
         }
@@ -100,13 +107,13 @@ class GroupDetailPage(
 
     private fun buildInvites(
         group: GroupComponent,
-        canManage: Boolean,
+        canInvite: Boolean,
         commands: UICommandBuilder,
         events: UIEventBuilder,
     ) {
         val invites = group.invites.entries.sortedBy { it.value.username.lowercase() }
-        commands.set("#InvitesSection.Visible", canManage && invites.isNotEmpty())
-        if (!canManage) return
+        commands.set("#InvitesSection.Visible", canInvite && invites.isNotEmpty())
+        if (!canInvite) return
 
         invites.forEachIndexed { i, (invitee, invite) ->
             val row = "#InviteList[$i]"

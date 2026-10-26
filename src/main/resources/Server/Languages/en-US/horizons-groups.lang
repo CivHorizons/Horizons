@@ -4,7 +4,6 @@ error.alreadymember=That player is already a member of this group.
 error.alreadyinvited=That player already has a pending invite.
 error.notinvited=That invite no longer exists.
 error.notmember=That player is not a member of this group.
-error.lastowner=A group must always have at least one Owner.
 error.rolenotfound=That role no longer exists.
 error.invalidname=Group names must be between 1 and 32 characters.
 error.playeroffline=That player is no longer online.
