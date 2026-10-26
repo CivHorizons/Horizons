@@ -28,8 +28,8 @@ class GroupComponent(
     var membership: MutableMap<UUID, GroupMembershipData> = ConcurrentHashMap(),
     var invites: MutableMap<UUID, GroupInviteData> = ConcurrentHashMap(),
     /**
-     * Deleted groups stay on disk but are never loaded. An admin recovers one by setting this back to
-     * false in its file and restarting the server.
+     * Deleted groups stay loaded so what they own, like reinforcements, doesn't vanish, but nobody can interact
+     * with them or through them. An admin recovers one by setting this back to false in its file and restarting.
      */
     var deleted: Boolean = false,
 ) {
